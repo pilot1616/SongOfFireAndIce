@@ -13,6 +13,10 @@ var won := false
 var pulse := 0.0
 var font: Font
 var platforms := [Rect2(72, 510, 270, 22), Rect2(390, 440, 210, 22), Rect2(820, 470, 290, 22), Rect2(1030, 385, 170, 22)]
+var level_index := 1
+var elapsed := 0.0
+var target_time := 120.0
+var level_count := 30
 
 func _ready():
     font = ThemeDB.fallback_font
@@ -20,13 +24,15 @@ func _ready():
 
 func _process(delta):
     pulse += delta
+    if not won: elapsed += delta
     if Input.is_action_just_pressed("reset"): reset_level()
     if not won:
         move_actor(ember, delta)
         move_actor(tide, delta)
         check_hazards(ember)
         check_hazards(tide)
-        if ember.pos.x > 1080 and tide.pos.x > 1080: won = true
+        if ember.pos.x > 1080 and tide.pos.x > 1080 and elapsed >= target_time: won = true
+        if elapsed > 600.0: reset_level()
     queue_redraw()
 
 func move_actor(a: Dictionary, delta: float):
@@ -64,7 +70,7 @@ func check_hazards(a: Dictionary):
 
 func reset_level():
     ember.pos = ember.spawn; ember.vel = Vector2.ZERO
-    tide.pos = tide.spawn; tide.vel = Vector2.ZERO; won = false
+    tide.pos = tide.spawn; tide.vel = Vector2.ZERO; won = false; elapsed = 0.0
 
 func _draw():
     draw_rect(Rect2(0, 0, W, H), Color("#091522"))
@@ -96,9 +102,11 @@ func _draw():
     draw_rect(Rect2(28, 24, 1224, 76), Color("#102431", 0.94), true)
     draw_string(font, Vector2(52, 57), "M O S S L I G H T", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("#f2e6bf"))
     draw_string(font, Vector2(52, 82), "CO-OP RUINS  /  01", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#79b6a4"))
-    draw_string(font, Vector2(775, 57), "A / D  +  W", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ember.color)
-    draw_string(font, Vector2(775, 80), "← / →  +  ↑", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, tide.color)
-    draw_string(font, Vector2(1050, 67), "R  RESET", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#9ab2b0"))
+    draw_string(font, Vector2(775, 48), "LEVEL %02d / %02d" % [level_index, level_count], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#f2e6bf"))
+    draw_string(font, Vector2(775, 72), "TIME  %03d / 600" % int(elapsed), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#9ab2b0"))
+    draw_string(font, Vector2(930, 57), "A / D  +  W", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ember.color)
+    draw_string(font, Vector2(930, 80), "← / →  +  ↑", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, tide.color)
+    draw_string(font, Vector2(1130, 67), "R", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#9ab2b0"))
     if won:
         draw_rect(Rect2(330, 250, 620, 150), Color("#102b31", 0.98), true)
         draw_string(font, Vector2(490, 312), "GATE AWAKENED", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color("#f8e3aa"))
