@@ -17,15 +17,21 @@ var level_index := 1
 var elapsed := 0.0
 var target_time := 120.0
 var level_count := 30
+var fire_pool_rect := Rect2(650, FLOOR_Y, 75, 116)
+var water_pool_rect := Rect2(725, FLOOR_Y, 75, 116)
 
 func _ready():
     font = ThemeDB.fallback_font
+    load_level(1)
     queue_redraw()
 
 func _process(delta):
     pulse += delta
     if not won: elapsed += delta
     if Input.is_action_just_pressed("reset"): reset_level()
+    if won and Input.is_action_just_pressed("ember_jump"):
+        level_index = level_index % level_count + 1
+        load_level(level_index)
     if not won:
         move_actor(ember, delta)
         move_actor(tide, delta)
@@ -61,8 +67,8 @@ func move_actor(a: Dictionary, delta: float):
 func check_hazards(a: Dictionary):
     # Two adjacent pools: orange fire hurts Tide, cyan water hurts Ember.
     var in_pool := a.pos.y > FLOOR_Y - 70
-    var fire_pool := a.pos.x > 650 and a.pos.x < 725
-    var water_pool := a.pos.x >= 725 and a.pos.x < 800
+    var fire_pool := fire_pool_rect.has_point(Vector2(a.pos.x, FLOOR_Y + 1))
+    var water_pool := water_pool_rect.has_point(Vector2(a.pos.x, FLOOR_Y + 1))
     var wrong := in_pool and ((a == tide and fire_pool) or (a == ember and water_pool))
     if wrong:
         a.pos = a.spawn
@@ -71,6 +77,18 @@ func check_hazards(a: Dictionary):
 func reset_level():
     ember.pos = ember.spawn; ember.vel = Vector2.ZERO
     tide.pos = tide.spawn; tide.vel = Vector2.ZERO; won = false; elapsed = 0.0
+
+func load_level(number: int):
+    var chapter := int((number - 1) / 5)
+    var variant := (number - 1) % 5
+    platforms = [Rect2(72, 510, 270, 22), Rect2(390, 440 - chapter * 8, 210, 22), Rect2(820, 470 - variant * 8, 290, 22), Rect2(1030, 385 - chapter * 7, 170, 22)]
+    if number >= 6: platforms.insert(2, Rect2(620, 500 - variant * 10, 125, 22))
+    if number >= 16: platforms.insert(3, Rect2(760, 405 - chapter * 5, 110, 22))
+    var pool_width := min(75.0 + chapter * 12.0 + variant * 3.0, 145.0)
+    fire_pool_rect = Rect2(650, FLOOR_Y, pool_width, 116)
+    water_pool_rect = Rect2(650 + pool_width, FLOOR_Y, pool_width, 116)
+    target_time = 120.0 + float(chapter * 20 + variant * 5)
+    reset_level()
 
 func _draw():
     draw_rect(Rect2(0, 0, W, H), Color("#091522"))
@@ -83,12 +101,13 @@ func _draw():
     draw_rect(Rect2(0, FLOOR_Y, W, H - FLOOR_Y), Color("#102d32"))
     draw_line(Vector2(0, FLOOR_Y), Vector2(W, FLOOR_Y), Color("#3d8a77"), 3)
     # platforms
-    platform(Rect2(72, 510, 270, 22)); platform(Rect2(390, 440, 210, 22)); platform(Rect2(820, 470, 290, 22)); platform(Rect2(1030, 385, 170, 22))
+    for platform_rect in platforms:
+        platform(platform_rect)
     # elemental pools
-    draw_rect(Rect2(650, FLOOR_Y, 75, 116), Color("#cc704d", 0.72))
-    draw_rect(Rect2(725, FLOOR_Y, 75, 116), Color("#2b9da4", 0.72))
-    draw_rect(Rect2(650, FLOOR_Y, 75, 8), Color("#ff9a5d"))
-    draw_rect(Rect2(725, FLOOR_Y, 75, 8), Color("#53d9db"))
+    draw_rect(fire_pool_rect, Color("#cc704d", 0.72))
+    draw_rect(water_pool_rect, Color("#2b9da4", 0.72))
+    draw_rect(Rect2(fire_pool_rect.position, Vector2(fire_pool_rect.size.x, 8)), Color("#ff9a5d"))
+    draw_rect(Rect2(water_pool_rect.position, Vector2(water_pool_rect.size.x, 8)), Color("#53d9db"))
     draw_string(font, Vector2(660, 650), "FIRE", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#ffc092"))
     draw_string(font, Vector2(741, 650), "WATER", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#a2eff0"))
     # goal arch
