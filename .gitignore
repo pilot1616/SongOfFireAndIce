@@ -1,3 +1,5 @@
 .godot/
 export/
+build/
+.cache/
 *.import

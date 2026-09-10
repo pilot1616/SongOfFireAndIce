@@ -91,15 +91,11 @@ func load_level(number: int):
     reset_level()
 
 func _draw():
-    draw_rect(Rect2(0, 0, W, H), Color("#091522"))
-    draw_circle(Vector2(1080, 110), 64 + sin(pulse) * 2, Color("#f5dc9a", 0.10))
-    draw_circle(Vector2(1080, 110), 42, Color("#f8e3aa"))
-    # distant canopy
-    for i in range(11):
-        var x := float(i * 130 - 40)
-        draw_colored_polygon(PackedVector2Array([Vector2(x, 330), Vector2(x + 80, 120), Vector2(x + 180, 330)]), Color("#102e38"))
+    draw_rect(Rect2(0, 0, W, H), Color("#07131f"))
+    draw_scene_background()
     draw_rect(Rect2(0, FLOOR_Y, W, H - FLOOR_Y), Color("#102d32"))
     draw_line(Vector2(0, FLOOR_Y), Vector2(W, FLOOR_Y), Color("#3d8a77"), 3)
+    draw_ruins()
     # platforms
     for platform_rect in platforms:
         platform(platform_rect)
@@ -108,15 +104,19 @@ func _draw():
     draw_rect(water_pool_rect, Color("#2b9da4", 0.72))
     draw_rect(Rect2(fire_pool_rect.position, Vector2(fire_pool_rect.size.x, 8)), Color("#ff9a5d"))
     draw_rect(Rect2(water_pool_rect.position, Vector2(water_pool_rect.size.x, 8)), Color("#53d9db"))
+    for i in range(5):
+        var wave_x := fire_pool_rect.position.x + fmod(float(i * 29) + pulse * 18.0, fire_pool_rect.size.x)
+        draw_circle(Vector2(wave_x, FLOOR_Y + 5), 3 + sin(pulse * 3.0 + i), Color("#ffd08a", 0.75))
+        var drop_x := water_pool_rect.position.x + fmod(float(i * 31) + pulse * 12.0, water_pool_rect.size.x)
+        draw_arc(Vector2(drop_x, FLOOR_Y + 6), 5, PI, TAU, 8, Color("#b8ffff", 0.72), 2)
     draw_string(font, Vector2(660, 650), "FIRE", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#ffc092"))
     draw_string(font, Vector2(741, 650), "WATER", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#a2eff0"))
     # goal arch
-    draw_line(Vector2(1080, FLOOR_Y), Vector2(1080, 330), Color("#d8c48a"), 8)
-    draw_line(Vector2(1170, FLOOR_Y), Vector2(1170, 330), Color("#d8c48a"), 8)
-    draw_arc(Vector2(1125, 330), 45, PI, TAU, 20, Color("#d8c48a"), 8)
+    draw_gate()
     draw_string(font, Vector2(1087, 310), "MOON GATE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#f7e4ac"))
     actor(ember, "EMBER")
     actor(tide, "TIDE")
+    draw_foreground()
     # HUD
     draw_rect(Rect2(28, 24, 1224, 76), Color("#102431", 0.94), true)
     draw_string(font, Vector2(52, 57), "M O S S L I G H T", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("#f2e6bf"))
@@ -133,7 +133,71 @@ func _draw():
         draw_string(font, Vector2(540, 380), "Press R to run it again", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#a9bbb2"))
 
 func platform(r: Rect2):
-    draw_rect(r, Color("#315b58"), true); draw_line(r.position, Vector2(r.end.x, r.position.y), Color("#79b6a4"), 3)
+    draw_colored_polygon(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end + Vector2(-8, 13), Vector2(r.position.x + 8, r.end.y + 13)]), Color("#203f43"))
+    draw_rect(r, Color("#315b58"), true)
+    draw_line(r.position, Vector2(r.end.x, r.position.y), Color("#80bda1"), 3)
+    for x in range(int(r.position.x) + 18, int(r.end.x), 42):
+        draw_line(Vector2(x, r.position.y + 5), Vector2(x - 7, r.end.y - 2), Color("#254b4b"), 2)
+        draw_circle(Vector2(x + 6, r.position.y - 1), 3, Color("#83a84e"))
+
+func draw_scene_background():
+    # Moon glow, stars, layered mountain silhouettes and mist establish depth.
+    for radius in range(110, 35, -12):
+        draw_circle(Vector2(1080, 110), radius, Color("#f5dc9a", 0.008 + (110 - radius) * 0.0008))
+    draw_circle(Vector2(1080, 110), 42, Color("#f8e3aa"))
+    for i in range(26):
+        var sx := float((i * 173 + 47) % 1260)
+        var sy := float((i * 67 + 31) % 270)
+        draw_circle(Vector2(sx, sy), 1.0 + float(i % 3) * .35, Color("#d7efdc", .35 + .15 * sin(pulse + i)))
+    for i in range(10):
+        var x := float(i * 155 - 80)
+        draw_colored_polygon(PackedVector2Array([Vector2(x, 390), Vector2(x + 95, 155 + (i % 3) * 35), Vector2(x + 210, 390)]), Color("#0e2733"))
+    for i in range(8):
+        draw_tree(Vector2(i * 190.0 - 35, 420 + (i % 2) * 25), .7 + (i % 3) * .12, Color("#112f35"))
+    draw_circle(Vector2(310 + sin(pulse * .2) * 45, 390), 170, Color("#8bb9a8", .035))
+    draw_circle(Vector2(850 + cos(pulse * .16) * 55, 430), 210, Color("#acd0bb", .025))
+
+func draw_tree(base: Vector2, scale_factor: float, tint: Color):
+    draw_colored_polygon(PackedVector2Array([base + Vector2(-18, 0) * scale_factor, base + Vector2(-9, -180) * scale_factor, base + Vector2(13, -185) * scale_factor, base + Vector2(22, 0) * scale_factor]), tint.darkened(.2))
+    for offset in [Vector2(-32, -165), Vector2(23, -190), Vector2(-8, -225)]:
+        draw_circle(base + offset * scale_factor, 55 * scale_factor, tint)
+        draw_circle(base + (offset + Vector2(-18, -8)) * scale_factor, 30 * scale_factor, tint.lightened(.08))
+
+func draw_ruins():
+    for base_x in [34.0, 350.0, 1215.0]:
+        draw_rect(Rect2(base_x, 350, 28, FLOOR_Y - 350), Color("#263f42"))
+        draw_rect(Rect2(base_x - 8, 340, 44, 14), Color("#3e5d57"))
+        for y in range(375, 580, 40):
+            draw_line(Vector2(base_x + 3, y), Vector2(base_x + 25, y - 5), Color("#172f34"), 2)
+    draw_arc(Vector2(370, 390), 55, PI, TAU, 18, Color("#35524e"), 12)
+    for i in range(6):
+        var vine_x := 45.0 + i * 238.0
+        draw_bezier(vine_x)
+
+func draw_bezier(start_x: float):
+    var previous := Vector2(start_x, 345)
+    for i in range(1, 9):
+        var next := Vector2(start_x + sin(i * .9) * 10, 345 + i * 22)
+        draw_line(previous, next, Color("#47724f"), 2)
+        if i % 2 == 0: draw_circle(next + Vector2(6, 0), 4, Color("#699052"))
+        previous = next
+
+func draw_gate():
+    for offset in [0.0, 90.0]:
+        draw_rect(Rect2(1075 + offset, 330, 11, FLOOR_Y - 330), Color("#bda876"))
+        draw_line(Vector2(1078 + offset, 340), Vector2(1078 + offset, FLOOR_Y), Color("#f4dfa1", .45), 3)
+    draw_arc(Vector2(1125, 330), 45, PI, TAU, 28, Color("#d8c48a"), 10)
+    draw_circle(Vector2(1125, 390), 27 + sin(pulse * 2.0) * 3, Color("#a9f0d0", .08))
+    for i in range(5):
+        var angle := pulse * .25 + TAU * i / 5.0
+        draw_circle(Vector2(1125, 390) + Vector2(cos(angle), sin(angle)) * 22, 2.5, Color("#e9db9d"))
+
+func draw_foreground():
+    for i in range(24):
+        var x := float(i * 57 + 9)
+        var height := 12.0 + float((i * 13) % 25)
+        draw_line(Vector2(x, H), Vector2(x + sin(i) * 8, H - height), Color("#091e25", .9), 5)
+    draw_rect(Rect2(0, H - 8, W, 8), Color("#07151c"))
 
 func actor(a: Dictionary, label: String):
     var p: Vector2 = a.pos
