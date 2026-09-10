@@ -137,8 +137,52 @@ func platform(r: Rect2):
 
 func actor(a: Dictionary, label: String):
     var p: Vector2 = a.pos
-    draw_circle(p + Vector2(0, 8), 22, Color(a.color, 0.16))
-    draw_circle(p, 17, a.color)
-    draw_circle(p + Vector2(0, -4), 11, Color("#f5e8c7"))
-    draw_circle(p + Vector2(-4, -5), 2.5, Color("#13212a")); draw_circle(p + Vector2(4, -5), 2.5, Color("#13212a"))
-    draw_string(font, p + Vector2(-27, -28), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, a.color)
+    var velocity: Vector2 = a.vel
+    var airborne := abs(velocity.y) > 20.0
+    var stride := 0.0 if abs(velocity.x) < 20.0 else sin(pulse * 12.0) * 5.0
+    var bob := sin(pulse * 3.0) * 1.5 if not airborne else -2.0
+    var facing := 1.0 if velocity.x >= 0 else -1.0
+    var accent: Color = a.color
+    var skin := Color("#f1c7a5") if label == "EMBER" else Color("#d7d1c4")
+    var dark := Color("#472537") if label == "EMBER" else Color("#173a55")
+    # Soft elemental aura and grounded shadow.
+    draw_ellipse(p + Vector2(0, 45), Vector2(22, 6), Color("#02090d", 0.40))
+    draw_circle(p + Vector2(0, 6 + bob), 31 + sin(pulse * 4.0), Color(accent, 0.10))
+    # Cape creates a readable silhouette and trails opposite the facing direction.
+    var cape := PackedVector2Array([p + Vector2(-10 * facing, 2 + bob), p + Vector2(-24 * facing, 34 + bob), p + Vector2(2 * facing, 29 + bob), p + Vector2(12 * facing, 5 + bob)])
+    draw_colored_polygon(cape, Color(dark, 0.92))
+    # Boots and animated legs.
+    var leg_y := 35.0 if not airborne else 30.0
+    draw_line(p + Vector2(-7, 21 + bob), p + Vector2(-8 + stride, leg_y + bob), dark, 8, true)
+    draw_line(p + Vector2(7, 21 + bob), p + Vector2(8 - stride, leg_y + bob), dark, 8, true)
+    draw_line(p + Vector2(-12 + stride, leg_y + 3 + bob), p + Vector2(-3 + stride, leg_y + 3 + bob), accent, 5, true)
+    draw_line(p + Vector2(4 - stride, leg_y + 3 + bob), p + Vector2(13 - stride, leg_y + 3 + bob), accent, 5, true)
+    # Tunic, belt and arms.
+    draw_colored_polygon(PackedVector2Array([p + Vector2(-14, -2 + bob), p + Vector2(14, -2 + bob), p + Vector2(18, 25 + bob), p + Vector2(-18, 25 + bob)]), dark)
+    draw_line(p + Vector2(-13, 3 + bob), p + Vector2(-19 - stride * .4, 19 + bob), skin, 7, true)
+    draw_line(p + Vector2(13, 3 + bob), p + Vector2(20 + stride * .4, 17 + bob), skin, 7, true)
+    draw_rect(Rect2(p + Vector2(-17, 14 + bob), Vector2(34, 5)), accent, true)
+    draw_circle(p + Vector2(0, 10 + bob), 6, Color("#f8e7b0"))
+    draw_circle(p + Vector2(0, 10 + bob), 3 + sin(pulse * 5.0), accent)
+    # Head, ears, hair/hood, eyes and nose.
+    draw_circle(p + Vector2(-12, -15 + bob), 4, skin); draw_circle(p + Vector2(12, -15 + bob), 4, skin)
+    draw_circle(p + Vector2(0, -17 + bob), 15, skin)
+    if label == "EMBER":
+        var hair := PackedVector2Array([p + Vector2(-15, -20 + bob), p + Vector2(-9, -35 + bob), p + Vector2(-2, -29 + bob), p + Vector2(5, -39 + bob), p + Vector2(9, -27 + bob), p + Vector2(16, -21 + bob), p + Vector2(12, -12 + bob), p + Vector2(-13, -12 + bob)])
+        draw_colored_polygon(hair, accent)
+    else:
+        draw_arc(p + Vector2(0, -18 + bob), 17, PI, TAU, 14, dark, 7)
+        draw_circle(p + Vector2(14, -28 + bob), 6, accent)
+        draw_circle(p + Vector2(18, -34 + bob), 3, Color("#bff7f2"))
+    draw_circle(p + Vector2(-5, -17 + bob), 2.2, Color("#17212b"))
+    draw_circle(p + Vector2(5, -17 + bob), 2.2, Color("#17212b"))
+    draw_line(p + Vector2(0, -14 + bob), p + Vector2(2 * facing, -11 + bob), Color("#ad735f"), 1.5)
+    draw_arc(p + Vector2(0, -10 + bob), 5, 0.25, PI - 0.25, 8, Color("#7f4545"), 1.4)
+    draw_string(font, p + Vector2(-27, -48 + bob), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, accent)
+
+func draw_ellipse(center: Vector2, radius: Vector2, color: Color):
+    var points := PackedVector2Array()
+    for i in range(25):
+        var angle := TAU * float(i) / 24.0
+        points.append(center + Vector2(cos(angle) * radius.x, sin(angle) * radius.y))
+    draw_colored_polygon(points, color)
