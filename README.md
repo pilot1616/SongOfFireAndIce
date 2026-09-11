@@ -23,6 +23,8 @@ chmod +x run_web.sh scripts/build_web.sh
 ./run_web.sh
 ```
 
+macOS 用户请先安装 Godot：`brew install --cask godot`。脚本会优先使用系统 Godot；Linux 才会自动下载 headless 二进制。
+
 然后访问 `http://localhost:8080`。可用 `PORT=3000 ./run_web.sh` 修改端口。
 
 ## 服务器部署
