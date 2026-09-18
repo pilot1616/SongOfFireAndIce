@@ -17,7 +17,7 @@ var pulse := 0.0
 var won := false
 var elapsed := 0.0
 var level_index := 1
-var level_count := 30
+var level_count := 40
 var target_time := 120.0
 var lv := {}
 var jump_buffer := ""
@@ -77,7 +77,8 @@ func _input(event: InputEvent):
 
 func load_level(n: int):
     lv = LevelData.build(n)
-    target_time = 120.0 + (int((n - 1) / 5)) * 20.0
+    level_count = 40
+    target_time = 120.0 + (int((n - 1) / 10)) * 30.0
     gems_total = 0
     gems_got = 0
     for e in lv.ents:
