@@ -82,6 +82,8 @@ func load_level(n: int):
     gems_got = 0
     for e in lv.ents:
         if e.t == "gem": gems_total += 1
+    ember.spawn = lv.get("spawnE", Vector2(70, 550))
+    tide.spawn = lv.get("spawnT", Vector2(130, 550))
     reset_level()
 
 func reset_level():
@@ -114,14 +116,13 @@ func reset_level():
                 pass
 
 func both_at_exit() -> bool:
-    var ex: Array = lv.get("exits", [])
-    if ex.is_empty():
+    var gd: Dictionary = {}
+    for e in lv.ents:
+        if e.t == "gemdoor": gd = e
+    if gd.is_empty():
         return ember.pos.x > 1100 and tide.pos.x > 1100
-    var ok := 0
-    for e in ex:
-        var who: Dictionary = ember if e[1] == "r" else tide
-        if abs(who.pos.x - e[0]) < 42: ok += 1
-    return ok == ex.size()
+    # gemdoor opens when enough gems of each color collected; both stand near it
+    return gd.open and abs(ember.pos.x - gd.pos.x) < 70 and abs(tide.pos.x - gd.pos.x) < 70
 
 # ---------------------------------------------------------------- physics
 
@@ -131,6 +132,8 @@ func solid_rects() -> Array:
     for p in lv.plats: out.append(p.r)
     for pl in lv.pools:
         if pl.kind == "water" and pl.frozen_t > 0.0: out.append(Rect2(pl.r.position, Vector2(pl.r.size.x, 10)))
+        if pl.kind == "fire": out.append(Rect2(pl.r.position.x, 604.0, pl.r.size.x, 10))  # walkable lava surface (Ember only)
+        if pl.kind == "water": out.append(Rect2(pl.r.position.x, 604.0, pl.r.size.x, 10))  # walkable water surface (Tide only)
     for e in lv.ents:
         match e.t:
             "wall":
@@ -143,6 +146,8 @@ func solid_rects() -> Array:
                 if not e.erased: out.append(e.r)
             "ice":
                 if not e.erased and e.melt < 0.85: out.append(e.r)
+            "elewall":
+                if not e.gone: out.append(e.r)
     return out
 
 func platforms_for_actor(a: Dictionary) -> Array:
@@ -153,6 +158,8 @@ func platforms_for_actor(a: Dictionary) -> Array:
         if e.t == "mover": out.append(e.r)
         if e.t == "elev": out.append(e.r)
         if e.t == "plat": out.append(e.r)
+        if e.t == "rot" and e.has("pad"):
+            out.append(Rect2(e.pad - Vector2(30, 4), Vector2(60, 10)))
     return out
 
 func move_actor(a: Dictionary, delta: float):
@@ -223,6 +230,7 @@ func respawn(a: Dictionary):
     a.vel = Vector2.ZERO
 
 func hazard_hit(a: Dictionary) -> String:
+    # Ember walks on lava; Tide walks on water. Shallow pits kill both.
     var feet_y: float = a.pos.y + ACTOR_H
     if feet_y < 598.0: return ""
     for pl in lv.pools:
@@ -230,7 +238,14 @@ func hazard_hit(a: Dictionary) -> String:
         if a.pos.x > pl.r.position.x - 6 and a.pos.x < pl.r.end.x + 6 and feet_y > pl.r.position.y - 4:
             if pl.kind == "fire": return "tide" if a == tide else ""
             if pl.kind == "water": return "ember" if a == ember else ""
-            if pl.kind == "poison": return "both"
+            if pl.kind == "shallow": return "both"
+    for sp in lv.ents:
+        if sp.t == "spike":
+            var sr: Rect2 = sp.r
+            var zone := sr.grow(-2.0) if not sp.pop else (sr.grow(-2.0) if sp.extended else Rect2())
+            if sp.pop and not sp.extended: continue
+            if a.pos.x > zone.position.x - 6 and a.pos.x < zone.end.x + 6 and feet_y > zone.position.y - 8 and feet_y < zone.end.y + 14:
+                return "both"
     return ""
 
 func step_actors(delta: float):
@@ -238,7 +253,9 @@ func step_actors(delta: float):
         move_actor(a, delta)
         var hz := hazard_hit(a)
         if hz == "both" or hz == ("tide" if a == tide else "ember"):
-            respawn(a)
+            camera_shake = 0.3
+            reset_level()  # any death resets the whole level
+            return
         # block pushing
         for e in lv.ents:
             if e.t != "block" or e.erased: continue
@@ -458,17 +475,15 @@ func step_entities(delta: float):
         if e.t == "portal":
             e.cdE = max(0.0, e.cdE - delta)
             e.cdT = max(0.0, e.cdT - delta)
-            for pair in [[e.a, e.b], [e.b, e.a]]:
-                var from: Vector2 = pair[0]
-                var to: Vector2 = pair[1]
-                if e.mode == "a2b" and pair[0] == e.b: continue
-                for a in [ember, tide]:
-                    var cd: float = e.cdE if a == ember else e.cdT
-                    if cd > 0.0: continue
-                    if Vector2(a.pos).distance_to(from) < 26:
-                        a.pos = to + (a.pos - from).normalized() * 20.0 if from.distance_to(to) > 1 else to
-                        a.pos = to
-                        if a == ember: e.cdE = 1.0
+            # Attribute portals: red pair is Ember-only, blue pair is Tide-only.
+            var my_col: String = e.col
+            var who: Dictionary = ember if my_col == "r" else tide
+            var cd: float = e.cdE if who == ember else e.cdT
+            if cd == 0.0:
+                for pair in [[e.a, e.b]]:
+                    if Vector2(who.pos).distance_to(pair[0]) < 26:
+                        who.pos = pair[1]
+                        if who == ember: e.cdE = 1.0
                         else: e.cdT = 1.0
         # swap portal
         if e.t == "swap":
@@ -485,12 +500,52 @@ func step_entities(delta: float):
                     e.used = true
                     e.cd = 3.0
                     camera_shake = 0.25
-        # gems
+        # gems: element-locked pickup (Ember takes red, Tide takes blue)
         if e.t == "gem" and not e.got:
+            if (e.k == "r" and ember.pos.distance_to(Vector2(e.pos)) < 30) or (e.k == "b" and tide.pos.distance_to(Vector2(e.pos)) < 30):
+                e.got = true
+                gems_got += 1
+        # gemdoor: held gems recomputed each frame from gem states (reset-proof)
+        if e.t == "gemdoor":
+            var hr := 0
+            var hb := 0
+            for g in lv.ents:
+                if g.t == "gem" and g.got:
+                    if g.k == "r": hr += 1
+                    else: hb += 1
+            e.have = {"r": hr, "b": hb}
+            e.open = hr >= e.need["r"] and hb >= e.need["b"]
+        # element walls: Ember melts ice walls by touching; Tide extinguishes fire walls
+        if e.t == "elewall" and not e.gone:
+            var who: Dictionary = ember if e.k == "ice" else tide
+            var body2 := Rect2(who.pos.x - ACTOR_HALF - 4, who.pos.y - ACTOR_H, ACTOR_HALF * 2 + 8, ACTOR_H * 2)
+            if body2.intersects(e.r):
+                e.gone = true
+                camera_shake = 0.25
+        # rotators: spin while plate held
+        if e.t == "rot":
+            var want_spin := false
+            for s in lv.ents:
+                if s.t == "plate" and s.id == e.src and s.pressed: want_spin = true
+                if s.t == "lever" and s.id == e.src and s.on: want_spin = true
+            e.spin = want_spin
+            if e.spin: e.ang += delta * 1.6
+            # carriage platform at the arm tip: actors standing on it are carried around
+            var pad: Vector2 = e.pos + Vector2(cos(e.ang), sin(e.ang)) * e.arm
+            e["pad"] = pad
             for a in [ember, tide]:
-                if Vector2(a.pos).distance_to(Vector2(e.pos)) < 30:
-                    e.got = true
-                    gems_got += 1
+                if abs(a.vel.y) < 5 and abs(a.pos.y + ACTOR_H - pad.y) < 6 and abs(a.pos.x - pad.x) < 34:
+                    var dpos: Vector2 = pad - e.get("prev_pad", pad)
+                    a.pos += dpos
+            e["prev_pad"] = pad
+        # pop spikes
+        if e.t == "spike" and e.pop:
+            var trig := false
+            for s in lv.ents:
+                if s.t == "plate" and s.id == e.src and s.pressed: trig = true
+                if s.t == "lever" and s.id == e.src and s.on: trig = true
+                if s.t == "timer" and s.id == e.src and s.active: trig = true
+            e.extended = trig
         # checkpoints
         if e.t == "check" and not e.used:
             for a in [ember, tide]:
@@ -671,7 +726,14 @@ func draw_pool(p: Dictionary):
         else:
             draw_water_pool(Rect2(r.position.x, 604.0, r.size.x, 116.0))
     else:
-        draw_poison_pool(Rect2(r.position.x, 604.0, r.size.x, 116.0))
+        draw_shallow_pool(Rect2(r.position.x, 604.0, r.size.x, 60.0))
+
+func draw_shallow_pool(r: Rect2):
+    # Transparent puddle: deadly for BOTH, jump across it.
+    draw_rect(Rect2(r.position.x, r.position.y + 18, r.size.x, 8), Color("#9fb4bd", 0.45))
+    draw_rect(Rect2(r.position.x, r.position.y + 22, r.size.x, 4), Color("#c9dbe2", 0.5))
+    var shine := fmod(pulse * 30.0, r.size.x + 40.0) - 20.0
+    draw_rect(Rect2(r.position.x + shine, r.position.y + 19, 14, 2), Color("#ffffff", 0.5))
 
 func draw_poison_pool(r: Rect2):
     draw_rect(r, Color("#1d3a12", 0.9))
@@ -850,15 +912,13 @@ func draw_entity(e: Dictionary):
             if e.active:
                 draw_circle(e.pos, 16 + sin(pulse * 6.0) * 3, Color(col2, 0.25))
         "portal":
-            var col3 := Color("#b07fe8")
+            var col3: Color = Color("#ff6a5a") if e.col == "r" else Color("#5ad0ff")
             draw_circle(e.a, 22 + sin(pulse * 3.0) * 2, Color(col3, 0.18))
             draw_arc(e.a, 20, 0, TAU, 24, col3, 3)
             draw_circle(e.a, 14, Color(col3, 0.3))
             draw_circle(e.b, 22 + sin(pulse * 3.0 + 2.0) * 2, Color(col3, 0.18))
             draw_arc(e.b, 20, 0, TAU, 24, col3, 3)
             draw_circle(e.b, 14, Color(col3, 0.3))
-            if e.mode == "a2b":
-                draw_string(font, e.a + Vector2(-24, 34), "ONE WAY", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("#c9a8f0"))
         "swap":
             var gate := false
             for s in lv.ents:
@@ -872,6 +932,52 @@ func draw_entity(e: Dictionary):
             pass
         "plat":
             pass
+        "spike":
+            if e.pop and not e.extended:
+                # retracted: show base plate only
+                draw_rect(Rect2(e.r.position.x, e.r.end.y - 4, e.r.size.x, 4), Color("#3c4650"))
+            else:
+                draw_rect(Rect2(e.r.position.x, e.r.end.y - 3, e.r.size.x, 3), Color("#3c4650"))
+                var n := int(e.r.size.x / 12.0)
+                for i5 in range(n):
+                    var sx5: float = e.r.position.x + 6.0 + i5 * 12.0
+                    draw_colored_polygon(PackedVector2Array([Vector2(sx5 - 5, e.r.end.y - 2), Vector2(sx5 + 5, e.r.end.y - 2), Vector2(sx5, e.r.position.y)]), Color("#22262c"))
+                if e.pop:
+                    draw_circle(Vector2(e.r.position.x + e.r.size.x / 2, e.r.position.y - 6), 3 + sin(pulse * 8.0), Color("#ff6a5a", 0.6))
+        "rot":
+            draw_circle(e.pos, 8, Color("#3c4650"))
+            draw_circle(e.pos, 4, Color("#8a9098"))
+            var pad: Vector2 = e.get("pad", e.pos + Vector2(cos(e.ang), sin(e.ang)) * e.arm)
+            draw_line(e.pos, pad, Color("#5a6a78"), 4)
+            draw_platform(Rect2(pad - Vector2(30, 4), Vector2(60, 10)))
+        "elewall":
+            if not e.gone:
+                if e.k == "ice":
+                    draw_rect(e.r, Color("#cfeefc", 0.85))
+                    draw_rect(e.r, Color("#eaf7ff", 0.7), false, 2.0)
+                    draw_string(font, e.r.position + Vector2(2, e.r.size.y / 2), "ICE", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("#5aa8d0"))
+                else:
+                    var flame_h := 6.0 + sin(pulse * 7.0) * 3.0
+                    draw_rect(e.r, Color("#7e2a16", 0.9))
+                    for i6 in range(int(e.r.size.x / 14.0)):
+                        var fx: float = e.r.position.x + 7.0 + i6 * 14.0
+                        draw_circle(Vector2(fx, e.r.position.y + e.r.size.y / 2 - flame_h / 2), 6.0 + flame_h / 2, Color("#ff7b39", 0.85))
+                    draw_string(font, e.r.position + Vector2(2, e.r.size.y / 2), "FIRE", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("#ffc092"))
+        "gemdoor":
+            var openf: bool = e.open
+            draw_rect(Rect2(e.pos.x - 60, e.pos.y - 120, 120, 120), Color("#2a3441", 0.9))
+            draw_rect(Rect2(e.pos.x - 60, e.pos.y - 120, 120, 120), Color("#8a6a3a"), false, 3.0)
+            # red slot (left), blue slot (right)
+            draw_rect(Rect2(e.pos.x - 44, e.pos.y - 100, 28, 34), Color("#3a2020"))
+            draw_rect(Rect2(e.pos.x + 16, e.pos.y - 100, 28, 34), Color("#1a2a3a"))
+            var rg: Color = Color("#ff6a5a") if e.have["r"] >= e.need["r"] else Color("#5a3a3a")
+            var bg2: Color = Color("#5ad0ff") if e.have["b"] >= e.need["b"] else Color("#3a4a5a")
+            draw_colored_polygon(PackedVector2Array([Vector2(e.pos.x - 30, e.pos.y - 96), Vector2(e.pos.x - 22, e.pos.y - 83), Vector2(e.pos.x - 30, e.pos.y - 70), Vector2(e.pos.x - 38, e.pos.y - 83)]), rg)
+            draw_colored_polygon(PackedVector2Array([Vector2(e.pos.x + 30, e.pos.y - 96), Vector2(e.pos.x + 38, e.pos.y - 83), Vector2(e.pos.x + 30, e.pos.y - 70), Vector2(e.pos.x + 22, e.pos.y - 83)]), bg2)
+            if openf:
+                draw_rect(Rect2(e.pos.x - 44, e.pos.y - 60, 88, 60), Color("#0a141c", 0.9))
+                draw_string(font, e.pos + Vector2(-26, -40), "EXIT", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#f8e3aa"))
+                draw_circle(e.pos + Vector2(0, -30), 20 + sin(pulse * 3.0) * 3, Color("#a9f0d0", 0.15))
         "check":
             var col5 := Color("#9fdc8f") if e.used else Color("#666f78")
             draw_line(e.pos, e.pos + Vector2(0, -40), col5, 3)
