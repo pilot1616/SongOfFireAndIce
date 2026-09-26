@@ -54,12 +54,14 @@ func _process(delta):
     queue_redraw()
 
 func _input(event: InputEvent):
-    # Backdoor: click the < > arrows by the level readout, or use keys.
+    # Backdoor: click the < > arrows by the level readout (screen-space rects
+    # matching draw_hud's right-anchored cluster), or use keys.
     if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-        if Rect2(733, 30, 30, 26).has_point(event.position):
+        var rx: float = view_w - 350.0
+        if Rect2(rx - 38, 30, 26, 26).has_point(event.position):
             level_index = clamp(level_index - 1, 1, level_count)
             load_level(level_index)
-        elif Rect2(899, 30, 32, 26).has_point(event.position):
+        elif Rect2(rx + 122, 30, 30, 26).has_point(event.position):
             level_index = clamp(level_index + 1, 1, level_count)
             load_level(level_index)
         return
@@ -683,28 +685,31 @@ func ray_hit_t(o: Vector2, d: Vector2, r: Rect2) -> float:
 # ================================================================ drawing
 
 func _draw():
-    # 2D camera: follows the actors' midpoint on either axis, clamped to the
-    # level bounds. On narrow screens (view smaller than 1280x720) the camera
-    # zooms out just enough to keep both actors in frame.
-    var vw := view_w
-    var vh := view_h
-    var zoom := 1.0
-    if vw < W or vh < H:
-        zoom = min(vw / W, vh / H)
-        vw = W
-        vh = H
-    var cam_x: float = 0.0
-    var cam_y: float = 0.0
-    if map_w > vw:
-        var mid: float = (ember.pos.x + tide.pos.x) / 2.0
-        cam_x = clamp(mid - vw / 2.0, 0.0, map_w - vw)
-    else:
-        cam_x = -(vw - map_w) / 2.0  # center narrow maps in a wider window
-    if map_h > vh:
-        var midy: float = (ember.pos.y + tide.pos.y) / 2.0
-        cam_y = clamp(midy - vh / 2.0, 0.0, map_h - vh)
-    else:
-        cam_y = -(vh - map_h)  # anchor to the floor line when the map is shorter
+    # 2D camera that ALWAYS keeps both actors in frame.
+    # 1) The view window must cover both actors: start from the viewport size,
+    #    grow/shrink so the two characters (plus margin) fit, then clamp zoom.
+    # 2) Center on the actors' bounding box, clamped to the map bounds.
+    var margin: float = 120.0
+    var lo_x: float = min(ember.pos.x, tide.pos.x) - margin
+    var hi_x: float = max(ember.pos.x, tide.pos.x) + margin
+    var lo_y: float = min(ember.pos.y, tide.pos.y) - margin
+    var hi_y: float = max(ember.pos.y, tide.pos.y) + margin
+    # desired view size in world units
+    var want_w: float = max(hi_x - lo_x, W * 0.62)   # never narrower than ~62% design width
+    var want_h: float = max(hi_y - lo_y, H * 0.62)
+    # fit the window: zoom is how much world one screen pixel shows
+    var vw: float = view_w
+    var vh: float = view_h
+    var zoom: float = min(vw / max(want_w, 1.0), vh / max(want_h, 1.0))
+    zoom = clamp(zoom, 0.5, 1.15)
+    vw = vw / zoom
+    vh = vh / zoom
+    var cam_x: float = clamp((lo_x + hi_x) / 2.0 - vw / 2.0, 0.0, max(map_w - vw, 0.0))
+    var cam_y: float = clamp((lo_y + hi_y) / 2.0 - vh / 2.0, 0.0, max(map_h - vh, 0.0))
+    if map_w <= vw:
+        cam_x = -(vw - map_w) / 2.0  # center narrow maps in a wider view
+    if map_h <= vh:
+        cam_y = -(vh - map_h)        # anchor to the floor line when the map is shorter
     if camera_shake > 0.0:
         cam_x += sin(pulse * 60.0) * camera_shake * 12.0
     var xform := Transform2D(0.0, Vector2(zoom, zoom), 0.0, Vector2(-cam_x * zoom, -cam_y * zoom))
@@ -1204,7 +1209,7 @@ func draw_ellipse(center: Vector2, radius: Vector2, color: Color):
     draw_colored_polygon(points, color)
 
 func draw_hud():
-    draw_rect(Rect2(28, 24, 1224, 76), Color("#102431", 0.94), true)
+    draw_rect(Rect2(28, 24, max(view_w - 56.0, 300.0), 76), Color("#102431", 0.94), true)
     draw_string(font, Vector2(52, 57), "M O S S L I G H T", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("#f2e6bf"))
     draw_string(font, Vector2(52, 82), "CO-OP RUINS  /  " + lv.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#79b6a4"))
     # minimap strip for wide maps
@@ -1218,16 +1223,19 @@ func draw_hud():
         draw_circle(Vector2(mx + rr * mw, my + 3), 4, ember.color)
         draw_circle(Vector2(mx + tr * mw, my + 3), 4, tide.color)
     draw_string(font, Vector2(52, 100), "CHEAT  click < > by LEVEL  /  N next  /  P prev  /  number + ENTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("#5f7a74", 0.8))
-    draw_string(font, Vector2(775, 48), "LEVEL %02d / %02d" % [level_index, level_count], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#f2e6bf"))
-    draw_string(font, Vector2(775, 72), "TIME  %03d / 600" % int(elapsed), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#9ab2b0"))
+    # right-anchored HUD cluster: all offsets are relative to the live view width
+    var rx: float = view_w - 350.0
+    draw_rect(Rect2(view_w - 378, 24, 378, 76), Color("#102431", 0.94), true)
+    draw_string(font, Vector2(rx, 48), "LEVEL %02d / %02d" % [level_index, level_count], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#f2e6bf"))
+    draw_string(font, Vector2(rx, 72), "TIME  %03d / 600" % int(elapsed), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#9ab2b0"))
     var arrow_hot := Color("#f2e6bf", 0.28 if int(pulse * 2.0) % 2 == 0 else 0.5)
-    draw_string(font, Vector2(737, 48), "<", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, arrow_hot)
-    draw_string(font, Vector2(903, 48), ">", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, arrow_hot)
-    draw_string(font, Vector2(930, 57), "A / D  +  W", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ember.color)
-    draw_string(font, Vector2(930, 80), "← / →  +  ↑", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, tide.color)
-    draw_string(font, Vector2(1130, 57), "GEMS", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#9ab2b0"))
-    draw_colored_polygon(PackedVector2Array([Vector2(1138, 66), Vector2(1145, 74), Vector2(1138, 82), Vector2(1131, 74)]), Color("#ff6a5a"))
-    draw_colored_polygon(PackedVector2Array([Vector2(1168, 66), Vector2(1175, 74), Vector2(1168, 82), Vector2(1161, 74)]), Color("#5ad0ff"))
-    draw_string(font, Vector2(1182, 78), "%d/%d" % [gems_got, gems_total], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#f2e6bf"))
+    draw_string(font, Vector2(rx - 38, 48), "<", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, arrow_hot)
+    draw_string(font, Vector2(rx + 128, 48), ">", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, arrow_hot)
+    draw_string(font, Vector2(rx + 155, 57), "A / D  +  W", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ember.color)
+    draw_string(font, Vector2(rx + 155, 80), "← / →  +  ↑", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, tide.color)
+    draw_string(font, Vector2(view_w - 150, 57), "GEMS", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#9ab2b0"))
+    draw_colored_polygon(PackedVector2Array([Vector2(view_w - 142, 66), Vector2(view_w - 135, 74), Vector2(view_w - 142, 82), Vector2(view_w - 149, 74)]), Color("#ff6a5a"))
+    draw_colored_polygon(PackedVector2Array([Vector2(view_w - 112, 66), Vector2(view_w - 105, 74), Vector2(view_w - 112, 82), Vector2(view_w - 119, 74)]), Color("#5ad0ff"))
+    draw_string(font, Vector2(view_w - 98, 78), "%d/%d" % [gems_got, gems_total], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#f2e6bf"))
     if jump_buffer != "":
-        draw_string(font, Vector2(620, 200), "JUMP TO LEVEL %s" % jump_buffer, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#f8e3aa", 0.9))
+        draw_string(font, Vector2(view_w / 2 - 100, 200), "JUMP TO LEVEL %s" % jump_buffer, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#f8e3aa", 0.9))
