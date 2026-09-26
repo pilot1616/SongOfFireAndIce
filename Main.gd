@@ -25,6 +25,7 @@ var jump_timer := 0.0
 var gems_total := 0
 var gems_got := 0
 var camera_shake := 0.0
+var map_w := 1280.0  # level width; camera scrolls when > 1280
 
 func _ready():
     font = ThemeDB.fallback_font
@@ -79,6 +80,7 @@ func load_level(n: int):
     lv = LevelData.build(n)
     level_count = 40
     target_time = 120.0 + (int((n - 1) / 10)) * 30.0
+    map_w = lv.get("map_w", 1280.0)
     gems_total = 0
     gems_got = 0
     for e in lv.ents:
@@ -220,7 +222,7 @@ func move_actor(a: Dictionary, delta: float):
     if not landed and a.pos.y > 700.0:
         respawn(a)
         return
-    a.pos.x = clamp(a.pos.x, 24.0, W - 24.0)
+    a.pos.x = clamp(a.pos.x, 24.0, map_w - 24.0)
 
 func respawn(a: Dictionary):
     var cp: Vector2 = a.spawn
@@ -674,12 +676,21 @@ func ray_hit_t(o: Vector2, d: Vector2, r: Rect2) -> float:
 # ================================================================ drawing
 
 func _draw():
-    draw_rect(Rect2(0, 0, W, H), Color("#07131f"))
-    draw_scene_background()
-    draw_line(Vector2(0, 604), Vector2(W, 604), Color("#3d8a77"), 2)
+    # Camera: on wide maps the view follows the actors' midpoint, clamped to the level.
+    var cam_x: float = 0.0
+    if map_w > W:
+        var mid: float = (ember.pos.x + tide.pos.x) / 2.0
+        cam_x = clamp(mid - W / 2.0, 0.0, map_w - W)
+        if camera_shake > 0.0:
+            cam_x += sin(pulse * 60.0) * camera_shake * 12.0
+    var xform := Transform2D(0.0, Vector2(-cam_x, 0.0))
+    draw_set_transform_matrix(xform)
+    draw_rect(Rect2(-cam_x - 10, 0, map_w + 20, H), Color("#07131f"))
+    draw_scene_background(map_w)
+    draw_line(Vector2(0, 604), Vector2(map_w, 604), Color("#3d8a77"), 2)
     for f in lv.floors:
         draw_rect(Rect2(f.position.x, 604, f.size.x, H - 604), Color("#102d32"))
-    draw_ruins()
+    draw_ruins(map_w)
     for p in lv.pools:
         draw_pool(p)
     for e in lv.ents:
@@ -688,11 +699,12 @@ func _draw():
         draw_platform(p.r)
     draw_gate()
     if lv.get("exits", []).is_empty():
-        draw_string(font, Vector2(1087, 310), "MOON GATE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#f7e4ac"))
+        draw_string(font, Vector2(map_w - 200, 310), "MOON GATE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#f7e4ac"))
     actor(ember, "EMBER")
     actor(tide, "TIDE")
-    draw_foreground()
+    draw_foreground(map_w)
     draw_darkness()
+    draw_set_transform_matrix(Transform2D())  # back to screen space for HUD
     draw_hud()
     if won:
         draw_rect(Rect2(330, 250, 620, 150), Color("#102b31", 0.98), true)
@@ -759,10 +771,10 @@ func draw_platform(r: Rect2):
         draw_line(Vector2(x, r.position.y + 4), Vector2(x - 6, r.end.y - 2), Color("#254b4b"), 2)
         draw_circle(Vector2(x + 6, r.position.y - 1), 2.5, Color("#83a84e"))
 
-func draw_scene_background():
+func draw_scene_background(map_width: float = W):
     for radius in range(110, 35, -12):
-        draw_circle(Vector2(1080, 110), radius, Color("#f5dc9a", 0.008 + (110 - radius) * 0.0008))
-    draw_circle(Vector2(1080, 110), 42, Color("#f8e3aa"))
+        draw_circle(Vector2(map_width - 200, 110), radius, Color("#f5dc9a", 0.008 + (110 - radius) * 0.0008))
+    draw_circle(Vector2(map_width - 200, 110), 42, Color("#f8e3aa"))
     for i in range(26):
         var sx := float((i * 173 + 47) % 1260)
         var sy := float((i * 67 + 31) % 270)
@@ -774,6 +786,15 @@ func draw_scene_background():
         draw_tree(Vector2(i * 190.0 - 35, 420 + (i % 2) * 25), .7 + (i % 3) * .12, Color("#112f35"))
     draw_circle(Vector2(310 + sin(pulse * .2) * 45, 390), 170, Color("#8bb9a8", .035))
     draw_circle(Vector2(850 + cos(pulse * .16) * 55, 430), 210, Color("#acd0bb", .025))
+    # extra mountain/tree bands so wide maps don't show empty sky
+    var bands := int(map_width / 1280.0)
+    for b in range(1, bands + 1):
+        var off: float = 1280.0 * float(b)
+        for i in range(10):
+            var bx := off + float(i * 155 - 80)
+            draw_colored_polygon(PackedVector2Array([Vector2(bx, 390), Vector2(bx + 95, 155 + ((i + b) % 3) * 35), Vector2(bx + 210, 390)]), Color("#0e2733"))
+        for i in range(8):
+            draw_tree(Vector2(off + i * 190.0 - 35, 420 + ((i + b) % 2) * 25), .7 + ((i + b) % 3) * .12, Color("#112f35"))
 
 func draw_tree(base: Vector2, scale_factor: float, tint: Color):
     draw_colored_polygon(PackedVector2Array([base + Vector2(-18, 0) * scale_factor, base + Vector2(-9, -180) * scale_factor, base + Vector2(13, -185) * scale_factor, base + Vector2(22, 0) * scale_factor]), tint.darkened(.2))
@@ -781,27 +802,38 @@ func draw_tree(base: Vector2, scale_factor: float, tint: Color):
         draw_circle(base + offset * scale_factor, 55 * scale_factor, tint)
         draw_circle(base + (offset + Vector2(-18, -8)) * scale_factor, 30 * scale_factor, tint.lightened(.08))
 
-func draw_ruins():
+func draw_ruins(map_width: float = W):
     for base_x in [34.0, 350.0, 1215.0]:
         draw_rect(Rect2(base_x, 350, 28, 254), Color("#263f42"))
         draw_rect(Rect2(base_x - 8, 340, 44, 14), Color("#3e5d57"))
     draw_arc(Vector2(370, 390), 55, PI, TAU, 18, Color("#35524e"), 12)
+    # pillar pairs across wide maps
+    var pillars := int(map_width / 420.0)
+    for k in range(pillars):
+        var px: float = 500.0 + 420.0 * float(k)
+        if px < map_width - 120.0:
+            draw_rect(Rect2(px, 350, 28, 254), Color("#263f42"))
+            draw_rect(Rect2(px - 8, 340, 44, 14), Color("#3e5d57"))
+            draw_arc(Vector2(px + 60, 390), 45, PI, TAU, 18, Color("#35524e", 0.7), 10)
 
 func draw_gate():
+    # decorative arch near the right edge of the map (gemdoor is the real exit)
+    var gx: float = map_w - 205.0
     for offset in [0.0, 90.0]:
-        draw_rect(Rect2(1075 + offset, 330, 11, 274), Color("#bda876", 0.6))
-    draw_arc(Vector2(1125, 330), 45, PI, TAU, 28, Color("#d8c48a", 0.7), 10)
-    draw_circle(Vector2(1125, 390), 27 + sin(pulse * 2.0) * 3, Color("#a9f0d0", .08))
+        draw_rect(Rect2(gx + offset, 330, 11, 274), Color("#bda876", 0.6))
+    draw_arc(Vector2(gx + 50, 330), 45, PI, TAU, 28, Color("#d8c48a", 0.7), 10)
+    draw_circle(Vector2(gx + 50, 390), 27 + sin(pulse * 2.0) * 3, Color("#a9f0d0", .08))
     for i in range(5):
         var angle := pulse * .25 + TAU * i / 5.0
-        draw_circle(Vector2(1125, 390) + Vector2(cos(angle), sin(angle)) * 22, 2.5, Color("#e9db9d"))
+        draw_circle(Vector2(gx + 50, 390) + Vector2(cos(angle), sin(angle)) * 22, 2.5, Color("#e9db9d"))
 
-func draw_foreground():
-    for i in range(24):
+func draw_foreground(map_width: float = W):
+    var blades := int(map_width / 57.0) + 1
+    for i in range(blades):
         var x := float(i * 57 + 9)
         var height := 12.0 + float((i * 13) % 25)
         draw_line(Vector2(x, H), Vector2(x + sin(i) * 8, H - height), Color("#091e25", .9), 5)
-    draw_rect(Rect2(0, H - 8, W, 8), Color("#07151c"))
+    draw_rect(Rect2(0, H - 8, map_width, 8), Color("#07151c"))
 
 func draw_entity(e: Dictionary):
     match e.t:
@@ -1151,6 +1183,16 @@ func draw_hud():
     draw_rect(Rect2(28, 24, 1224, 76), Color("#102431", 0.94), true)
     draw_string(font, Vector2(52, 57), "M O S S L I G H T", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("#f2e6bf"))
     draw_string(font, Vector2(52, 82), "CO-OP RUINS  /  " + lv.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#79b6a4"))
+    # minimap strip for wide maps
+    if map_w > W:
+        var mw: float = 320.0
+        var mx: float = 460.0
+        var my: float = 88.0
+        draw_rect(Rect2(mx, my, mw, 6), Color("#254b4b"))
+        var rr: float = clamp(ember.pos.x / map_w, 0.0, 1.0)
+        var tr: float = clamp(tide.pos.x / map_w, 0.0, 1.0)
+        draw_circle(Vector2(mx + rr * mw, my + 3), 4, ember.color)
+        draw_circle(Vector2(mx + tr * mw, my + 3), 4, tide.color)
     draw_string(font, Vector2(52, 100), "CHEAT  click < > by LEVEL  /  N next  /  P prev  /  number + ENTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("#5f7a74", 0.8))
     draw_string(font, Vector2(775, 48), "LEVEL %02d / %02d" % [level_index, level_count], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#f2e6bf"))
     draw_string(font, Vector2(775, 72), "TIME  %03d / 600" % int(elapsed), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#9ab2b0"))
