@@ -187,6 +187,7 @@ static func build(n: int) -> Dictionary:
             ]
         12:
             lv.name = "I12 留守接力"
+            lv.map_h = 820.0
             lv.map_w = 1920.0
             lv.floors = [seg(0.0, 880.0), pit(880.0, 1040.0), seg(1040.0, 1920.0)]
             lv.spawnE = Vector2(70, 550)
@@ -231,6 +232,7 @@ static func build(n: int) -> Dictionary:
             ]
         15:
             lv.name = "I15 高低分支"
+            lv.map_h = 820.0
             lv.map_w = 1920.0
             lv.floors = [seg(0.0, 1920.0)]
             lv.spawnE = Vector2(70, 550)
@@ -259,6 +261,7 @@ static func build(n: int) -> Dictionary:
             ]
         17:
             lv.name = "I17 冰面电梯"
+            lv.map_h = 900.0
             lv.map_w = 1920.0
             lv.floors = [seg(0.0, 800.0), seg(1920.0 - 520.0, 520.0)]
             lv.spawnE = Vector2(70, 550)
@@ -424,6 +427,7 @@ static func build(n: int) -> Dictionary:
             ]
         27:
             lv.name = "H27 高塔速降"
+            lv.map_h = 900.0
             lv.map_w = 2560.0
             lv.floors = [seg(0.0, 2560.0)]
             lv.spawnE = Vector2(70, 250)
@@ -490,6 +494,7 @@ static func build(n: int) -> Dictionary:
         # ================= 第四章 光明神殿（31-40）：map_w 3200 立体复合 =================
         31:
             lv.name = "L31 三层立体"
+            lv.map_h = 900.0
             lv.map_w = 3200.0
             lv.floors = [seg(0.0, 500.0), seg(1150.0, 2050.0), seg(2700.0, 3200.0)]
             lv.spawnE = Vector2(70, 250)
@@ -617,6 +622,7 @@ static func build(n: int) -> Dictionary:
             ]
         38:
             lv.name = "L38 立体回环"
+            lv.map_h = 900.0
             lv.map_w = 3200.0
             lv.floors = [seg(0.0, 700.0), seg(1200.0, 2000.0), seg(2500.0, 3200.0)]
             lv.spawnE = Vector2(70, 250)
@@ -656,6 +662,7 @@ static func build(n: int) -> Dictionary:
             ]
         40:
             lv.name = "L40 光明之心"
+            lv.map_h = 900.0
             lv.map_w = 3200.0
             lv.floors = [seg(0.0, 900.0), seg(1250.0, 2100.0), seg(2450.0, 3200.0)]
             lv.spawnE = Vector2(70, 250)

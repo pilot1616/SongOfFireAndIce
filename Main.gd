@@ -25,7 +25,10 @@ var jump_timer := 0.0
 var gems_total := 0
 var gems_got := 0
 var camera_shake := 0.0
-var map_w := 1280.0  # level width; camera scrolls when > 1280
+var map_w := 1280.0  # level size; camera scrolls on either axis when larger than the view
+var map_h := 720.0
+var view_w := 1280.0
+var view_h := 720.0
 
 func _ready():
     font = ThemeDB.fallback_font
@@ -33,6 +36,9 @@ func _ready():
 
 func _process(delta):
     pulse += delta
+    # live view size: window can be resized, expand stretch gives us the real area
+    view_w = max(get_viewport_rect().size.x, 640.0)
+    view_h = max(get_viewport_rect().size.y, 360.0)
     if not won: elapsed += delta
     jump_timer += delta
     if jump_timer > 2.0: jump_buffer = ""
@@ -81,6 +87,7 @@ func load_level(n: int):
     level_count = 40
     target_time = 120.0 + (int((n - 1) / 10)) * 30.0
     map_w = lv.get("map_w", 1280.0)
+    map_h = lv.get("map_h", 720.0)
     gems_total = 0
     gems_got = 0
     for e in lv.ents:
@@ -676,20 +683,37 @@ func ray_hit_t(o: Vector2, d: Vector2, r: Rect2) -> float:
 # ================================================================ drawing
 
 func _draw():
-    # Camera: on wide maps the view follows the actors' midpoint, clamped to the level.
+    # 2D camera: follows the actors' midpoint on either axis, clamped to the
+    # level bounds. On narrow screens (view smaller than 1280x720) the camera
+    # zooms out just enough to keep both actors in frame.
+    var vw := view_w
+    var vh := view_h
+    var zoom := 1.0
+    if vw < W or vh < H:
+        zoom = min(vw / W, vh / H)
+        vw = W
+        vh = H
     var cam_x: float = 0.0
-    if map_w > W:
+    var cam_y: float = 0.0
+    if map_w > vw:
         var mid: float = (ember.pos.x + tide.pos.x) / 2.0
-        cam_x = clamp(mid - W / 2.0, 0.0, map_w - W)
-        if camera_shake > 0.0:
-            cam_x += sin(pulse * 60.0) * camera_shake * 12.0
-    var xform := Transform2D(0.0, Vector2(-cam_x, 0.0))
+        cam_x = clamp(mid - vw / 2.0, 0.0, map_w - vw)
+    else:
+        cam_x = -(vw - map_w) / 2.0  # center narrow maps in a wider window
+    if map_h > vh:
+        var midy: float = (ember.pos.y + tide.pos.y) / 2.0
+        cam_y = clamp(midy - vh / 2.0, 0.0, map_h - vh)
+    else:
+        cam_y = -(vh - map_h)  # anchor to the floor line when the map is shorter
+    if camera_shake > 0.0:
+        cam_x += sin(pulse * 60.0) * camera_shake * 12.0
+    var xform := Transform2D(0.0, Vector2(zoom, zoom), 0.0, Vector2(-cam_x * zoom, -cam_y * zoom))
     draw_set_transform_matrix(xform)
-    draw_rect(Rect2(-cam_x - 10, 0, map_w + 20, H), Color("#07131f"))
-    draw_scene_background(map_w)
+    draw_rect(Rect2(-cam_x - 10, -cam_y - 10, max(map_w, vw) + 20, max(map_h, vh) + 20), Color("#07131f"))
+    draw_scene_background(map_w, map_h)
     draw_line(Vector2(0, 604), Vector2(map_w, 604), Color("#3d8a77"), 2)
     for f in lv.floors:
-        draw_rect(Rect2(f.position.x, 604, f.size.x, H - 604), Color("#102d32"))
+        draw_rect(Rect2(f.position.x, 604, f.size.x, max(H, map_h) - 604), Color("#102d32"))
     draw_ruins(map_w)
     for p in lv.pools:
         draw_pool(p)
@@ -771,7 +795,7 @@ func draw_platform(r: Rect2):
         draw_line(Vector2(x, r.position.y + 4), Vector2(x - 6, r.end.y - 2), Color("#254b4b"), 2)
         draw_circle(Vector2(x + 6, r.position.y - 1), 2.5, Color("#83a84e"))
 
-func draw_scene_background(map_width: float = W):
+func draw_scene_background(map_width: float = W, map_height: float = H):
     for radius in range(110, 35, -12):
         draw_circle(Vector2(map_width - 200, 110), radius, Color("#f5dc9a", 0.008 + (110 - radius) * 0.0008))
     draw_circle(Vector2(map_width - 200, 110), 42, Color("#f8e3aa"))
