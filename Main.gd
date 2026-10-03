@@ -17,7 +17,7 @@ var pulse := 0.0
 var won := false
 var elapsed := 0.0
 var level_index := 1
-var level_count := 40
+var level_count := 17
 var target_time := 120.0
 var lv := {}
 var jump_buffer := ""
@@ -86,8 +86,8 @@ func _input(event: InputEvent):
 
 func load_level(n: int):
     lv = LevelData.build(n)
-    level_count = 40
-    target_time = 120.0 + (int((n - 1) / 10)) * 30.0
+    level_count = 17
+    target_time = 120.0 + (int((n - 1) / 4)) * 20.0
     map_w = lv.get("map_w", 1280.0)
     map_h = lv.get("map_h", 720.0)
     gems_total = 0
@@ -116,6 +116,10 @@ func reset_level():
             "ice":
                 e.melt = 0.0; e.vy = 0.0
                 if e.has("erased"): e.erased = false
+            "crumble":
+                e.t_left = e.ttl; e.gone = false; e.shaking = false
+            "bounce":
+                e.cd = {}
             "mirror":
                 e.cd = 0.0
             "portal":
@@ -172,6 +176,8 @@ func platforms_for_actor(a: Dictionary) -> Array:
         if e.t == "plat": out.append(e.r)
         if e.t == "rot" and e.has("pad"):
             out.append(Rect2(e.pad - Vector2(30, 4), Vector2(60, 10)))
+        if e.t == "bounce" and not e.r in out: out.append(e.r)
+        if e.t == "crumble" and not e.gone: out.append(e.r)
     return out
 
 func move_actor(a: Dictionary, delta: float):
@@ -471,16 +477,18 @@ func step_entities(delta: float):
                         found = true
                 if not found: all = false
             e.active = all
-        # doors
+        # doors: multiple links act as AND (dual-button gates)
         if e.t == "door":
-            var open := false
+            var satisfied := 0
             for lid in e.links:
+                var lit := false
                 for s in lv.ents:
-                    if s.t == "plate" and s.id == lid and s.pressed: open = true
-                    if s.t == "lever" and s.id == lid and s.on: open = true
-                    if s.t == "recv" and s.id == lid and s.active: open = true
-                    if s.t == "chain" and s.id == lid and s.active: open = true
-            e.open = open
+                    if s.t == "plate" and s.id == lid and s.pressed: lit = true
+                    if s.t == "lever" and s.id == lid and s.on: lit = true
+                    if s.t == "recv" and s.id == lid and s.active: lit = true
+                    if s.t == "chain" and s.id == lid and s.active: lit = true
+                if lit: satisfied += 1
+            e.open = satisfied == e.links.size()
         if e.t == "timdoor":
             pass
         # portals
@@ -534,6 +542,28 @@ func step_entities(delta: float):
             if body2.intersects(e.r):
                 e.gone = true
                 camera_shake = 0.25
+        # bounce pads: launch any actor standing on top (fixed upward impulse)
+        if e.t == "bounce":
+            var cd2: Dictionary = e.cd
+            for a in [ember, tide]:
+                var key: String = "EMBER" if a == ember else "TIDE"
+                cd2[key] = max(0.0, cd2.get(key, 0.0) - delta)
+                if cd2.get(key, 0.0) == 0.0 and abs(a.vel.y) < 5 and abs(a.pos.y + ACTOR_H - e.r.position.y) < 5 and a.pos.x > e.r.position.x - 10 and a.pos.x < e.r.end.x + 10:
+                    a.vel.y = -e.power
+                    cd2[key] = 0.35
+                    camera_shake = 0.12
+        # crumble platforms: countdown while an actor stands on top
+        if e.t == "crumble" and not e.gone:
+            var occupied := false
+            for a in [ember, tide]:
+                if abs(a.vel.y) < 5 and abs(a.pos.y + ACTOR_H - e.r.position.y) < 5 and a.pos.x > e.r.position.x - 10 and a.pos.x < e.r.end.x + 10:
+                    occupied = true
+            if occupied:
+                e.shaking = true
+                e.t_left -= delta
+                if e.t_left <= 0.0:
+                    e.gone = true
+                    camera_shake = 0.2
         # rotators: spin while plate held
         if e.t == "rot":
             var want_spin := false
@@ -994,6 +1024,27 @@ func draw_entity(e: Dictionary):
             pass
         "plat":
             pass
+        "bounce":
+            # shallow-brown spring pad with animated coil
+            draw_rect(e.r, Color("#a5754a"))
+            draw_rect(e.r, Color("#c79a68"), false, 2.0)
+            var squish: float = 3.0 * sin(pulse * 6.0)
+            draw_line(Vector2(e.r.position.x + 12, e.r.end.y), Vector2(e.r.position.x + 12, e.r.end.y + squish), Color("#6a4a2a"), 3)
+            draw_line(Vector2(e.r.position.x + 58, e.r.end.y), Vector2(e.r.position.x + 58, e.r.end.y + squish), Color("#6a4a2a"), 3)
+            draw_string(font, e.r.position + Vector2(18, -4), "JUMP", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("#e8cba0"))
+        "crumble":
+            if not e.gone:
+                var alpha2: float = 0.55
+                var shake_off: float = sin(pulse * 40.0) * 2.0 if e.shaking else 0.0
+                draw_rect(Rect2(e.r.position.x + shake_off, e.r.position.y, e.r.size.x, e.r.size.y), Color("#9aa2ac", alpha2))
+                draw_rect(Rect2(e.r.position.x + shake_off, e.r.position.y, e.r.size.x, e.r.size.y), Color("#c5ccd4", 0.7), false, 1.5)
+                if e.shaking and e.ttl > 0.0:
+                    var frac: float = clamp(e.t_left / e.ttl, 0.0, 1.0)
+                    draw_rect(Rect2(e.r.position.x, e.r.position.y - 6, e.r.size.x * frac, 3), Color("#ff8a5a"))
+            else:
+                # broken remnants
+                draw_line(Vector2(e.r.position.x, e.r.end.y + 6), Vector2(e.r.position.x + 10, e.r.end.y + 10), Color("#5a626a", 0.5), 2)
+                draw_line(Vector2(e.r.end.x - 10, e.r.end.y + 8), Vector2(e.r.end.x, e.r.end.y + 4), Color("#5a626a", 0.5), 2)
         "spike":
             if e.pop and not e.extended:
                 # retracted: show base plate only
