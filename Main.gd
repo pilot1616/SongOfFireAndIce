@@ -132,13 +132,25 @@ func reset_level():
                 pass
 
 func both_at_exit() -> bool:
-    var gd: Dictionary = {}
+    # Multi-door levels (early tutorials): each open door holds one actor.
+    # Single-door levels: both actors stand in the same door.
+    var doors: Array = []
     for e in lv.ents:
-        if e.t == "gemdoor": gd = e
-    if gd.is_empty():
+        if e.t == "gemdoor": doors.append(e)
+    if doors.is_empty():
         return ember.pos.x > 1100 and tide.pos.x > 1100
-    # gemdoor opens when enough gems of each color collected; both stand near it
-    return gd.open and abs(ember.pos.x - gd.pos.x) < 70 and abs(tide.pos.x - gd.pos.x) < 70
+    var eIn := false
+    var tIn := false
+    var openDoors := 0
+    for d in doors:
+        if not d.open: continue
+        openDoors += 1
+        if abs(ember.pos.x - d.pos.x) < 70 and abs(ember.pos.y - (d.pos.y - 60)) < 90: eIn = true
+        if abs(tide.pos.x - d.pos.x) < 70 and abs(tide.pos.y - (d.pos.y - 60)) < 90: tIn = true
+    if doors.size() == 1:
+        return openDoors == 1 and eIn and tIn
+    # multi-door: both actors in, each inside some open door
+    return eIn and tIn and openDoors == doors.size()
 
 # ---------------------------------------------------------------- physics
 
@@ -1023,7 +1035,7 @@ func draw_entity(e: Dictionary):
         "dark":
             pass
         "plat":
-            pass
+            draw_platform(e.r)
         "bounce":
             # shallow-brown spring pad with animated coil
             draw_rect(e.r, Color("#a5754a"))

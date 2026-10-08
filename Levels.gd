@@ -107,7 +107,7 @@ static func build(n: int) -> Dictionary:
             lv.floors = [seg(0.0, 320.0), seg(360.0, 660.0)]
             lv.spawnE = Vector2(610, 550)
             lv.spawnT = Vector2(80, 550)
-            lv.ents = [gemdoor(40.0, 604.0), gemdoor(620.0, 604.0)]
+            lv.ents = [gemdoor(40.0, 604.0, 0, 0), gemdoor(620.0, 604.0, 0, 0)]
         2:
             lv.name = "2 分隔浅沟"
             lv.map_w = 715.0
@@ -116,7 +116,7 @@ static func build(n: int) -> Dictionary:
             lv.pools = [pool("shallow", 330.0, 110.0)]
             lv.spawnE = Vector2(70, 550)
             lv.spawnT = Vector2(660, 550)
-            lv.ents = [gemdoor(60.0, 604.0), gemdoor(665.0, 604.0)]
+            lv.ents = [gemdoor(60.0, 604.0, 0, 0), gemdoor(665.0, 604.0, 0, 0)]
         3:
             lv.name = "3 双色水池初识"
             lv.map_w = 770.0
@@ -125,7 +125,7 @@ static func build(n: int) -> Dictionary:
             lv.spawnE = Vector2(70, 550)
             lv.spawnT = Vector2(715, 550)
             lv.pools = [pool("fire", 300.0, 200.0), pool("water", 300.0, 200.0)]
-            lv.ents = [gemdoor(60.0, 604.0), gemdoor(715.0, 604.0)]
+            lv.ents = [gemdoor(60.0, 604.0, 0, 0), gemdoor(715.0, 604.0, 0, 0)]
         4:
             lv.name = "4 单向跳板初体验"
             lv.map_w = 825.0
@@ -248,6 +248,7 @@ static func build(n: int) -> Dictionary:
                 door(1080.0, 444.0, 160.0, ["p2"]),
                 gemdoor(70.0, 604.0, 2, 2), gemdoor(1215.0, 604.0, 2, 2),
                 gem(770.0, 550.0, "r"), gem(900.0, 550.0, "b"),
+                gem(1100.0, 550.0, "r"), gem(480.0, 550.0, "b"),
             ]
         12:
             lv.name = "12 跳板接浮板"
@@ -286,11 +287,12 @@ static func build(n: int) -> Dictionary:
                 door(500.0, 444.0, 160.0, ["pL"]),
                 bouncepad(1000.0, 590.0, 760.0),
                 plat(940.0, 400.0, 150.0),
-                plate(990.0, 366.0, "pR", "n"),
+                plate(990.0, 392.0, "pR", "n"),
                 door(1210.0, 444.0, 160.0, ["pR"]),
                 door(714.0, 444.0, 160.0, ["pL", "pR"]),
                 gemdoor(1300.0, 604.0, 2, 2),
                 gem(540.0, 550.0, "r"), gem(920.0, 550.0, "b"),
+                gem(120.0, 550.0, "r"), gem(1320.0, 550.0, "b"),
             ]
         14:
             lv.name = "14 元素迷宫"
@@ -325,7 +327,7 @@ static func build(n: int) -> Dictionary:
                 crumbleplat(620.0, 400.0, 80.0, 2.2),
                 crumbleplat(780.0, 380.0, 80.0, 2.2),
                 plat(900.0, 300.0, 180.0),
-                plate(940.0, 266.0, "pT", "n"),
+                plate(940.0, 292.0, "pT", "n"),
                 elev(1120.0, 480.0, 180.0, 480.0, ["pT"]),
                 plat(1070.0, 180.0, 260.0),
                 gemdoor(1200.0, 180.0, 2, 2),
@@ -409,6 +411,7 @@ static func build(n: int) -> Dictionary:
                 elewall(880.0, 344.0, 26.0, 260.0, "ice"),
                 gemdoor(90.0, 604.0, 2, 2), gemdoor(1520.0, 604.0, 2, 2),
                 gem(700.0, 550.0, "r"), gem(900.0, 550.0, "b"),
+                gem(420.0, 550.0, "r"), gem(1250.0, 550.0, "b"),
             ]
         20:
             lv.name = "20 冰殿之心"
@@ -638,8 +641,8 @@ static func build(n: int) -> Dictionary:
                 portal(300.0, 540.0, 1500.0, 460.0, "r"),
                 portal(1650.0, 540.0, 450.0, 460.0, "b"),
                 plat(1350.0, 500.0, 170.0), plat(400.0, 500.0, 170.0),
-                plate(1420.0, 466.0, "p1", "f"),
-                plate(460.0, 466.0, "p2", "f"),
+                plate(1420.0, 492.0, "p1", "f"),
+                plate(460.0, 492.0, "p2", "f"),
                 door(950.0, 444.0, 160.0, ["p1", "p2"]),
                 gemdoor(950.0, 604.0, 3, 3),
                 gem(1400.0, 470.0, "r"), gem(500.0, 470.0, "b"),
