@@ -87,13 +87,59 @@ func _input(event: InputEvent):
 func load_level(n: int):
     lv = LevelData.build(n)
     level_count = 40
-    target_time = 120.0 + (int((n - 1) / 5)) * 20.0
     map_w = lv.get("map_w", 1280.0)
     map_h = lv.get("map_h", 720.0)
     gems_total = 0
     gems_got = 0
+    var reds: Array = []
+    var blues: Array = []
     for e in lv.ents:
-        if e.t == "gem": gems_total += 1
+        if e.t == "gem":
+            gems_total += 1
+            if e.k == "r": reds.append(e.pos)
+            else: blues.append(e.pos)
+    # per-level par time: ideal route estimate x6, clamped 45-240s
+    var spd: float = 285.0
+    var route := func(spawn: Vector2, gems: Array, door_x: float) -> float:
+        var t: float = 0.0
+        var cur: Vector2 = spawn
+        for g in gems:
+            t += abs(g.x - cur.x) / spd + abs(g.y - cur.y) / 260.0 + 0.5
+            cur = g
+        t += abs(door_x - cur.x) / spd + 0.5
+        return t
+    reds.sort_custom(func(a, b): return a.x < b.x)
+    blues.sort_custom(func(a, b): return a.x < b.x)
+    var doors: Array = []
+    for e in lv.ents:
+        if e.t == "gemdoor": doors.append(e.pos.x)
+    var te: float = 0.0
+    var tt: float = 0.0
+    var mech: float = 0.0
+    for e in lv.ents:
+        match e.t:
+            "plate": mech += 1.5
+            "door": mech += 1.0
+            "block": mech += 2.5
+            "crumble": mech += 0.5
+            "bounce": mech += 0.8
+            "elewall": mech += 1.0
+            "portal": mech += 1.0
+            "rot": mech += 2.0
+    if doors.is_empty(): doors = [1600.0]
+    var d1: float = doors[0]
+    var d2: float = doors[doors.size() - 1]
+    if doors.size() == 1:
+        te = route.call(ember.spawn, reds, d1)
+        tt = route.call(tide.spawn, blues, d1)
+    elif ember.spawn.x > (d1 + d2) / 2.0:
+        te = route.call(ember.spawn, reds, d2)
+        tt = route.call(tide.spawn, blues, d1)
+    else:
+        te = route.call(ember.spawn, reds, d1)
+        tt = route.call(tide.spawn, blues, d2)
+    var ideal: float = max(te, tt) + mech
+    target_time = clamp(ideal * 6.0, 45.0, 240.0)
     ember.spawn = lv.get("spawnE", Vector2(70, 550))
     tide.spawn = lv.get("spawnT", Vector2(130, 550))
     reset_level()
@@ -1290,7 +1336,7 @@ func draw_hud():
     var rx: float = view_w - 350.0
     draw_rect(Rect2(view_w - 378, 24, 378, 76), Color("#102431", 0.94), true)
     draw_string(font, Vector2(rx, 48), "LEVEL %02d / %02d" % [level_index, level_count], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#f2e6bf"))
-    draw_string(font, Vector2(rx, 72), "TIME  %03d / 600" % int(elapsed), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#9ab2b0"))
+    draw_string(font, Vector2(rx, 72), "TIME  %03d  PAR %03d  MAX 600" % [int(elapsed), int(target_time)], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#9ab2b0"))
     var arrow_hot := Color("#f2e6bf", 0.28 if int(pulse * 2.0) % 2 == 0 else 0.5)
     draw_string(font, Vector2(rx - 38, 48), "<", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, arrow_hot)
     draw_string(font, Vector2(rx + 128, 48), ">", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, arrow_hot)
