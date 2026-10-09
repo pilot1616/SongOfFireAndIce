@@ -773,19 +773,15 @@ func ray_hit_t(o: Vector2, d: Vector2, r: Rect2) -> float:
 # ================================================================ drawing
 
 func _draw():
-    # 2D camera that ALWAYS keeps both actors in frame.
-    # 1) The view window must cover both actors: start from the viewport size,
-    #    grow/shrink so the two characters (plus margin) fit, then clamp zoom.
-    # 2) Center on the actors' bounding box, clamped to the map bounds.
+    # 2D camera that ALWAYS keeps both actors in frame, and the world render
+    # covers the entire visible band so no window size shows void/cut edges.
     var margin: float = 120.0
     var lo_x: float = min(ember.pos.x, tide.pos.x) - margin
     var hi_x: float = max(ember.pos.x, tide.pos.x) + margin
     var lo_y: float = min(ember.pos.y, tide.pos.y) - margin
     var hi_y: float = max(ember.pos.y, tide.pos.y) + margin
-    # desired view size in world units
-    var want_w: float = max(hi_x - lo_x, W * 0.62)   # never narrower than ~62% design width
+    var want_w: float = max(hi_x - lo_x, W * 0.62)
     var want_h: float = max(hi_y - lo_y, H * 0.62)
-    # fit the window: zoom is how much world one screen pixel shows
     var vw: float = view_w
     var vh: float = view_h
     var zoom: float = min(vw / max(want_w, 1.0), vh / max(want_h, 1.0))
@@ -795,18 +791,23 @@ func _draw():
     var cam_x: float = clamp((lo_x + hi_x) / 2.0 - vw / 2.0, 0.0, max(map_w - vw, 0.0))
     var cam_y: float = clamp((lo_y + hi_y) / 2.0 - vh / 2.0, 0.0, max(map_h - vh, 0.0))
     if map_w <= vw:
-        cam_x = -(vw - map_w) / 2.0  # center narrow maps in a wider view
+        cam_x = -(vw - map_w) / 2.0
     if map_h <= vh:
-        cam_y = -(vh - map_h)        # anchor to the floor line when the map is shorter
+        cam_y = -(vh - map_h)  # floor line pinned near the window bottom
     if camera_shake > 0.0:
         cam_x += sin(pulse * 60.0) * camera_shake * 12.0
+    # visible world band — everything below must cover this
+    var band_l: float = cam_x
+    var band_t: float = cam_y
+    var band_r: float = cam_x + vw
+    var band_b: float = cam_y + vh
     var xform := Transform2D(0.0, Vector2(zoom, zoom), 0.0, Vector2(-cam_x * zoom, -cam_y * zoom))
     draw_set_transform_matrix(xform)
-    draw_rect(Rect2(-cam_x - 10, -cam_y - 10, max(map_w, vw) + 20, max(map_h, vh) + 20), Color("#07131f"))
-    draw_scene_background(map_w, map_h)
+    draw_rect(Rect2(band_l - 10, band_t - 10, (band_r - band_l) + 20, (band_b - band_t) + 20), Color("#07131f"))
+    draw_scene_background(map_w, band_b)
     draw_line(Vector2(0, 604), Vector2(map_w, 604), Color("#3d8a77"), 2)
     for f in lv.floors:
-        draw_rect(Rect2(f.position.x, 604, f.size.x, max(H, map_h) - 604), Color("#102d32"))
+        draw_rect(Rect2(f.position.x, 604, f.size.x, band_b - 604), Color("#102d32"))
     draw_ruins(map_w)
     for p in lv.pools:
         draw_pool(p)
@@ -819,7 +820,7 @@ func _draw():
         draw_string(font, Vector2(map_w - 200, 310), "MOON GATE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#f7e4ac"))
     actor(ember, "EMBER")
     actor(tide, "TIDE")
-    draw_foreground(map_w)
+    draw_foreground(map_w, band_b)
     draw_darkness()
     draw_set_transform_matrix(Transform2D())  # back to screen space for HUD
     draw_hud()
@@ -944,13 +945,15 @@ func draw_gate():
         var angle := pulse * .25 + TAU * i / 5.0
         draw_circle(Vector2(gx + 50, 390) + Vector2(cos(angle), sin(angle)) * 22, 2.5, Color("#e9db9d"))
 
-func draw_foreground(map_width: float = W):
+func draw_foreground(map_width: float = W, band_b: float = H):
+    # grass row sits on the visible bottom edge of the window, whatever the zoom
+    var base_y: float = max(H, band_b)
     var blades := int(map_width / 57.0) + 1
     for i in range(blades):
         var x := float(i * 57 + 9)
         var height := 12.0 + float((i * 13) % 25)
-        draw_line(Vector2(x, H), Vector2(x + sin(i) * 8, H - height), Color("#091e25", .9), 5)
-    draw_rect(Rect2(0, H - 8, map_width, 8), Color("#07151c"))
+        draw_line(Vector2(x, base_y), Vector2(x + sin(i) * 8, base_y - height), Color("#091e25", .9), 5)
+    draw_rect(Rect2(0, base_y - 8, map_width, 8), Color("#07151c"))
 
 func draw_entity(e: Dictionary):
     match e.t:
