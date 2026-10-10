@@ -36,6 +36,8 @@ func _ready():
 
 func _process(delta):
     pulse += delta
+    # shake decays exponentially so one-shot impacts never stick
+    camera_shake = max(0.0, camera_shake - delta * 1.5)
     # live view size: window can be resized, expand stretch gives us the real area
     view_w = max(get_viewport_rect().size.x, 640.0)
     view_h = max(get_viewport_rect().size.y, 360.0)
@@ -147,7 +149,7 @@ func load_level(n: int):
 func reset_level():
     ember.pos = ember.spawn; ember.vel = Vector2.ZERO
     tide.pos = tide.spawn; tide.vel = Vector2.ZERO
-    won = false; elapsed = 0.0
+    won = false; elapsed = 0.0; camera_shake = 0.0
     for e in lv.ents:
         match e.t:
             "gem":
