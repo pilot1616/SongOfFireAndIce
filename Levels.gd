@@ -101,7 +101,7 @@ static func build(n: int) -> Dictionary:
     match n:
         # ---------- 简单档 1-10：单房间，机关≤2 种，宝石 1+1，几乎不分路 ----------
         1:
-            lv.name = "1 森林入口"
+            lv.name = "L01 Forest Gate"
             lv.map_w = 660.0
             lv.map_h = 500.0
             lv.floors = [seg(0.0, 320.0), seg(360.0, 660.0)]
@@ -109,7 +109,7 @@ static func build(n: int) -> Dictionary:
             lv.spawnT = Vector2(80, 550)
             lv.ents = [gemdoor(40.0, 604.0, 0, 0), gemdoor(620.0, 604.0, 0, 0)]
         2:
-            lv.name = "2 分隔浅沟"
+            lv.name = "L02 Split Trench"
             lv.map_w = 715.0
             lv.map_h = 510.0
             lv.floors = [seg(0.0, 330.0), seg(440.0, 715.0)]
@@ -118,7 +118,7 @@ static func build(n: int) -> Dictionary:
             lv.spawnT = Vector2(660, 550)
             lv.ents = [gemdoor(60.0, 604.0, 0, 0), gemdoor(665.0, 604.0, 0, 0)]
         3:
-            lv.name = "3 双色水池初识"
+            lv.name = "L03 Twin Pools"
             lv.map_w = 770.0
             lv.map_h = 510.0
             lv.floors = [seg(0.0, 300.0), seg(500.0, 770.0)]
@@ -127,7 +127,7 @@ static func build(n: int) -> Dictionary:
             lv.pools = [pool("fire", 300.0, 200.0), pool("water", 300.0, 200.0)]
             lv.ents = [gemdoor(60.0, 604.0, 0, 0), gemdoor(715.0, 604.0, 0, 0)]
         4:
-            lv.name = "4 单向跳板初体验"
+            lv.name = "L04 First Bounce"
             lv.map_w = 825.0
             lv.map_h = 540.0
             lv.floors = [seg(0.0, 825.0)]
@@ -141,7 +141,7 @@ static func build(n: int) -> Dictionary:
                 gem(420.0, 280.0, "r"), gem(470.0, 280.0, "b"),
             ]
         5:
-            lv.name = "5 按钮与门"
+            lv.name = "L05 Plate & Gate"
             lv.map_w = 880.0
             lv.map_h = 540.0
             lv.floors = [seg(0.0, 880.0)]
@@ -155,7 +155,7 @@ static func build(n: int) -> Dictionary:
                 gem(760.0, 550.0, "r"), gem(790.0, 550.0, "b"),
             ]
         6:
-            lv.name = "6 推箱子压按钮"
+            lv.name = "L06 Box on Plate"
             lv.map_w = 935.0
             lv.map_h = 550.0
             lv.floors = [seg(0.0, 935.0)]
@@ -170,7 +170,7 @@ static func build(n: int) -> Dictionary:
                 gem(820.0, 550.0, "r"), gem(855.0, 550.0, "b"),
             ]
         7:
-            lv.name = "7 交错水池"
+            lv.name = "L07 Crossing Pools"
             lv.map_w = 1045.0
             lv.map_h = 560.0
             lv.floors = [seg(0.0, 1045.0)]
@@ -183,7 +183,7 @@ static func build(n: int) -> Dictionary:
                 gem(580.0, 550.0, "r"), gem(715.0, 550.0, "b"),
             ]
         8:
-            lv.name = "8 高低台跳板"
+            lv.name = "L08 Bounce Towers"
             lv.map_w = 1045.0
             lv.map_h = 780.0
             lv.floors = [seg(0.0, 1045.0)]
@@ -199,7 +199,7 @@ static func build(n: int) -> Dictionary:
                 gem(540.0, 210.0, "r"), gem(620.0, 210.0, "b"),
             ]
         9:
-            lv.name = "9 双按钮双门"
+            lv.name = "L09 Twin Gates"
             lv.map_w = 1155.0
             lv.map_h = 580.0
             lv.floors = [seg(0.0, 1155.0)]
@@ -216,7 +216,7 @@ static func build(n: int) -> Dictionary:
                 gem(540.0, 550.0, "r"), gem(680.0, 550.0, "b"),
             ]
         10:
-            lv.name = "10 消失浮板"
+            lv.name = "L10 Crumble Run"
             lv.map_w = 1210.0
             lv.map_h = 580.0
             lv.floors = [seg(0.0, 290.0), seg(920.0, 1210.0)]
@@ -233,7 +233,7 @@ static func build(n: int) -> Dictionary:
             ]
         # ---------- 中档 11-20：两房间，组合机关，宝石 2+2，短时分路 ----------
         11:
-            lv.name = "11 长廊推箱"
+            lv.name = "L11 Box Corridor"
             lv.map_w = 1265.0
             lv.map_h = 600.0
             lv.floors = [seg(0.0, 1265.0)]
@@ -251,7 +251,7 @@ static func build(n: int) -> Dictionary:
                 gem(1100.0, 550.0, "r"), gem(480.0, 550.0, "b"),
             ]
         12:
-            lv.name = "12 跳板接浮板"
+            lv.name = "L12 Bounce & Crumble"
             lv.map_w = 1265.0
             lv.map_h = 850.0
             lv.floors = [seg(0.0, 1265.0)]
@@ -272,7 +272,7 @@ static func build(n: int) -> Dictionary:
                 gem(200.0, 550.0, "r"), gem(1150.0, 550.0, "b"),
             ]
         13:
-            lv.name = "13 分头开锁"
+            lv.name = "L13 Split Locks"
             lv.map_w = 1375.0
             lv.map_h = 850.0
             lv.floors = [seg(0.0, 1375.0)]
@@ -295,7 +295,7 @@ static func build(n: int) -> Dictionary:
                 gem(120.0, 550.0, "r"), gem(1320.0, 550.0, "b"),
             ]
         14:
-            lv.name = "14 元素迷宫"
+            lv.name = "L14 Element Maze"
             lv.map_w = 1430.0
             lv.map_h = 620.0
             lv.floors = [seg(0.0, 1430.0)]
@@ -314,7 +314,7 @@ static func build(n: int) -> Dictionary:
                 gem(1200.0, 430.0, "r"), gem(570.0, 550.0, "b"),
             ]
         15:
-            lv.name = "15 多层高塔"
+            lv.name = "L15 High Tower"
             lv.map_w = 1430.0
             lv.map_h = 940.0
             lv.floors = [seg(0.0, 1430.0)]
@@ -335,7 +335,7 @@ static func build(n: int) -> Dictionary:
                 gem(1160.0, 150.0, "r"), gem(1260.0, 150.0, "b"),
             ]
         16:
-            lv.name = "16 混合试炼"
+            lv.name = "L16 Mixed Trial"
             lv.map_w = 1485.0
             lv.map_h = 850.0
             lv.floors = [seg(0.0, 1485.0)]
@@ -356,7 +356,7 @@ static func build(n: int) -> Dictionary:
                 gem(700.0, 550.0, "r"), gem(840.0, 550.0, "b"),
             ]
         17:
-            lv.name = "17 双墙回廊"
+            lv.name = "L17 Twin Walls"
             lv.map_w = 1540.0
             lv.map_h = 640.0
             lv.floors = [seg(0.0, 1540.0)]
@@ -374,7 +374,7 @@ static func build(n: int) -> Dictionary:
                 gem(300.0, 550.0, "r"), gem(1300.0, 550.0, "b"),
             ]
         18:
-            lv.name = "18 元素双塔"
+            lv.name = "L18 Element Spires"
             lv.map_w = 1540.0
             lv.map_h = 900.0
             lv.floors = [seg(0.0, 500.0), seg(1040.0, 1540.0)]
@@ -395,7 +395,7 @@ static func build(n: int) -> Dictionary:
                 gem(240.0, 550.0, "r"), gem(1100.0, 550.0, "b"),
             ]
         19:
-            lv.name = "19 双门谜城"
+            lv.name = "L19 Gate Enigma"
             lv.map_w = 1595.0
             lv.map_h = 660.0
             lv.floors = [seg(0.0, 1595.0)]
@@ -414,7 +414,7 @@ static func build(n: int) -> Dictionary:
                 gem(420.0, 550.0, "r"), gem(1250.0, 550.0, "b"),
             ]
         20:
-            lv.name = "20 冰殿之心"
+            lv.name = "L20 Heart of Ice"
             lv.map_w = 1595.0
             lv.map_h = 900.0
             lv.floors = [seg(0.0, 650.0), pit(650.0, 850.0), seg(850.0, 1595.0)]
@@ -434,7 +434,7 @@ static func build(n: int) -> Dictionary:
             ]
         # ---------- 高阶 21-30：多房间长分路，传送/旋转/元素墙，宝石 2+2→3+3 ----------
         21:
-            lv.name = "21 红蓝分厅"
+            lv.name = "L21 Red Blue Halls"
             lv.map_w = 1650.0
             lv.map_h = 700.0
             lv.floors = [seg(0.0, 650.0), seg(1000.0, 1650.0)]
@@ -450,7 +450,7 @@ static func build(n: int) -> Dictionary:
                 gem(400.0, 550.0, "r"), gem(1250.0, 550.0, "b"),
             ]
         22:
-            lv.name = "22 旋转长廊"
+            lv.name = "L22 Spinner Hall"
             lv.map_w = 1650.0
             lv.map_h = 720.0
             lv.floors = [seg(0.0, 500.0), seg(1150.0, 1650.0)]
@@ -467,7 +467,7 @@ static func build(n: int) -> Dictionary:
                 gem(300.0, 540.0, "r"), gem(1420.0, 540.0, "b"),
             ]
         23:
-            lv.name = "23 火娃专线"
+            lv.name = "L23 Ember Line"
             lv.map_w = 1650.0
             lv.map_h = 660.0
             lv.floors = [seg(0.0, 1650.0)]
@@ -486,7 +486,7 @@ static func build(n: int) -> Dictionary:
                 gem(300.0, 550.0, "r"), gem(550.0, 550.0, "b"),
             ]
         24:
-            lv.name = "24 冰娃专线"
+            lv.name = "L24 Tide Line"
             lv.map_w = 1650.0
             lv.map_h = 660.0
             lv.floors = [seg(0.0, 1650.0)]
@@ -505,7 +505,7 @@ static func build(n: int) -> Dictionary:
                 gem(300.0, 550.0, "b"), gem(550.0, 550.0, "r"),
             ]
         25:
-            lv.name = "25 四墙联廊"
+            lv.name = "L25 Four Walls"
             lv.map_w = 1650.0
             lv.map_h = 660.0
             lv.floors = [seg(0.0, 1650.0)]
@@ -526,7 +526,7 @@ static func build(n: int) -> Dictionary:
                 gem(1150.0, 550.0, "r"), gem(350.0, 550.0, "b"),
             ]
         26:
-            lv.name = "26 远端双板"
+            lv.name = "L26 Far Plates"
             lv.map_w = 1650.0
             lv.map_h = 700.0
             lv.floors = [seg(0.0, 450.0), seg(1200.0, 1650.0)]
@@ -545,7 +545,7 @@ static func build(n: int) -> Dictionary:
                 gem(240.0, 550.0, "r"), gem(1550.0, 550.0, "b"),
             ]
         27:
-            lv.name = "27 高塔速降"
+            lv.name = "L27 Tower Drop"
             lv.map_w = 1650.0
             lv.map_h = 880.0
             lv.floors = [seg(0.0, 1650.0)]
@@ -559,7 +559,7 @@ static func build(n: int) -> Dictionary:
                 gemdoor(1500.0, 604.0, 2, 2),
             ]
         28:
-            lv.name = "28 双转台渡"
+            lv.name = "L28 Twin Spin Ferry"
             lv.map_w = 1650.0
             lv.map_h = 720.0
             lv.floors = [seg(0.0, 460.0), seg(1190.0, 1650.0)]
@@ -578,7 +578,7 @@ static func build(n: int) -> Dictionary:
                 gem(280.0, 540.0, "r"), gem(1450.0, 540.0, "b"),
             ]
         29:
-            lv.name = "29 黑暗矿区"
+            lv.name = "L29 Dark Mines"
             lv.map_w = 1650.0
             lv.map_h = 680.0
             lv.floors = [seg(0.0, 1650.0)]
@@ -596,7 +596,7 @@ static func build(n: int) -> Dictionary:
                 gem(300.0, 550.0, "r"), gem(1350.0, 550.0, "b"),
             ]
         30:
-            lv.name = "30 火殿之心"
+            lv.name = "L30 Heart of Fire"
             lv.map_w = 1650.0
             lv.map_h = 760.0
             lv.floors = [seg(0.0, 1650.0)]
@@ -616,7 +616,7 @@ static func build(n: int) -> Dictionary:
             ]
         # ---------- 困难档 31-40：超大立体复合，连锁+接力，宝石 3+3 ----------
         31:
-            lv.name = "31 三层立体"
+            lv.name = "L31 Three Layers"
             lv.map_w = 1760.0
             lv.map_h = 900.0
             lv.floors = [seg(0.0, 500.0), seg(1150.0, 1760.0)]
@@ -631,7 +631,7 @@ static func build(n: int) -> Dictionary:
                 gemdoor(1600.0, 604.0, 3, 3),
             ]
         32:
-            lv.name = "32 传送接力"
+            lv.name = "L32 Portal Relay"
             lv.map_w = 1760.0
             lv.map_h = 720.0
             lv.floors = [seg(0.0, 1760.0)]
@@ -650,7 +650,7 @@ static func build(n: int) -> Dictionary:
                 gem(150.0, 550.0, "r"), gem(1650.0, 550.0, "b"),
             ]
         33:
-            lv.name = "33 尖刺迷宫"
+            lv.name = "L33 Spike Maze"
             lv.map_w = 1760.0
             lv.map_h = 660.0
             lv.floors = [seg(0.0, 1760.0)]
@@ -669,7 +669,7 @@ static func build(n: int) -> Dictionary:
                 gem(180.0, 550.0, "b"), gem(1560.0, 550.0, "r"),
             ]
         34:
-            lv.name = "34 三转台渡"
+            lv.name = "L34 Triple Spin"
             lv.map_w = 1760.0
             lv.map_h = 720.0
             lv.floors = [seg(0.0, 420.0), seg(1340.0, 1760.0)]
@@ -687,7 +687,7 @@ static func build(n: int) -> Dictionary:
                 gem(1500.0, 500.0, "r"), gem(320.0, 500.0, "b"),
             ]
         35:
-            lv.name = "35 暗殿回环"
+            lv.name = "L35 Dark Loop"
             lv.map_w = 1760.0
             lv.map_h = 700.0
             lv.floors = [seg(0.0, 1760.0)]
@@ -708,7 +708,7 @@ static func build(n: int) -> Dictionary:
                 gem(1600.0, 500.0, "r"), gem(250.0, 500.0, "b"),
             ]
         36:
-            lv.name = "36 墙外有墙"
+            lv.name = "L36 Wall Upon Wall"
             lv.map_w = 1760.0
             lv.map_h = 660.0
             lv.floors = [seg(0.0, 1760.0)]
@@ -731,7 +731,7 @@ static func build(n: int) -> Dictionary:
                 gem(250.0, 550.0, "b"), gem(1550.0, 550.0, "r"),
             ]
         37:
-            lv.name = "37 连锁三器"
+            lv.name = "L37 Chain Trio"
             lv.map_w = 1760.0
             lv.map_h = 720.0
             lv.floors = [seg(0.0, 1760.0)]
@@ -752,7 +752,7 @@ static func build(n: int) -> Dictionary:
                 gem(500.0, 550.0, "b"), gem(1300.0, 550.0, "r"),
             ]
         38:
-            lv.name = "38 立体回环"
+            lv.name = "L38 Vertical Loop"
             lv.map_w = 1760.0
             lv.map_h = 900.0
             lv.floors = [seg(0.0, 700.0), seg(1250.0, 1760.0)]
@@ -772,7 +772,7 @@ static func build(n: int) -> Dictionary:
                 gem(900.0, 550.0, "r"), gem(1350.0, 260.0, "b"),
             ]
         39:
-            lv.name = "39 顺序即解"
+            lv.name = "L39 Order Matters"
             lv.map_w = 1760.0
             lv.map_h = 680.0
             lv.floors = [seg(0.0, 1760.0)]
@@ -795,7 +795,7 @@ static func build(n: int) -> Dictionary:
                 gem(1000.0, 500.0, "r"), gem(1150.0, 500.0, "b"),
             ]
         40:
-            lv.name = "40 光明之心"
+            lv.name = "L40 Heart of Light"
             lv.map_w = 1760.0
             lv.map_h = 950.0
             lv.floors = [seg(0.0, 950.0), seg(1300.0, 1760.0)]

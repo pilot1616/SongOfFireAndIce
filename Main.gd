@@ -59,11 +59,11 @@ func _input(event: InputEvent):
     # Backdoor: click the < > arrows by the level readout (screen-space rects
     # matching draw_hud's right-anchored cluster), or use keys.
     if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-        var rx: float = view_w - 350.0
-        if Rect2(rx - 38, 30, 26, 26).has_point(event.position):
+        var rx: float = view_w - 330.0
+        if Rect2(rx + 146, 30, 24, 26).has_point(event.position):
             level_index = clamp(level_index - 1, 1, level_count)
             load_level(level_index)
-        elif Rect2(rx + 122, 30, 30, 26).has_point(event.position):
+        elif Rect2(rx + 196, 30, 24, 26).has_point(event.position):
             level_index = clamp(level_index + 1, 1, level_count)
             load_level(level_index)
         return
@@ -795,7 +795,9 @@ func _draw():
     if map_w <= vw:
         cam_x = -(vw - map_w) / 2.0
     if map_h <= vh:
-        cam_y = -(vh - map_h)  # floor line pinned near the window bottom
+        # pin the ground line (y=604) at a fixed 116px above the window bottom,
+        # sky extends upward naturally — no void below the floor
+        cam_y = 720.0 - vh
     if camera_shake > 0.0:
         cam_x += sin(pulse * 60.0) * camera_shake * 12.0
     # visible world band — everything below must cover this
@@ -1337,19 +1339,20 @@ func draw_hud():
         draw_circle(Vector2(mx + rr * mw, my + 3), 4, ember.color)
         draw_circle(Vector2(mx + tr * mw, my + 3), 4, tide.color)
     draw_string(font, Vector2(52, 100), "CHEAT  click < > by LEVEL  /  N next  /  P prev  /  number + ENTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("#5f7a74", 0.8))
-    # right-anchored HUD cluster: all offsets are relative to the live view width
-    var rx: float = view_w - 350.0
-    draw_rect(Rect2(view_w - 378, 24, 378, 76), Color("#102431", 0.94), true)
-    draw_string(font, Vector2(rx, 48), "LEVEL %02d / %02d" % [level_index, level_count], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#f2e6bf"))
-    draw_string(font, Vector2(rx, 72), "TIME  %03d  PAR %03d  MAX 600" % [int(elapsed), int(target_time)], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#9ab2b0"))
+    # right-anchored HUD cluster: single tight column layout that never overlaps
+    var rx: float = view_w - 330.0
+    draw_rect(Rect2(rx - 24, 24, 300, 96), Color("#102431", 0.94), true)
+    draw_string(font, Vector2(rx, 44), "LEVEL %02d / %02d" % [level_index, level_count], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#f2e6bf"))
+    draw_string(font, Vector2(rx, 90), "TIME %03d  PAR %03d" % [int(elapsed), int(target_time)], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#9ab2b0"))
     var arrow_hot := Color("#f2e6bf", 0.28 if int(pulse * 2.0) % 2 == 0 else 0.5)
-    draw_string(font, Vector2(rx - 38, 48), "<", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, arrow_hot)
-    draw_string(font, Vector2(rx + 128, 48), ">", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, arrow_hot)
-    draw_string(font, Vector2(rx + 155, 57), "A / D  +  W", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ember.color)
-    draw_string(font, Vector2(rx + 155, 80), "← / →  +  ↑", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, tide.color)
-    draw_string(font, Vector2(view_w - 150, 57), "GEMS", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#9ab2b0"))
-    draw_colored_polygon(PackedVector2Array([Vector2(view_w - 142, 66), Vector2(view_w - 135, 74), Vector2(view_w - 142, 82), Vector2(view_w - 149, 74)]), Color("#ff6a5a"))
-    draw_colored_polygon(PackedVector2Array([Vector2(view_w - 112, 66), Vector2(view_w - 105, 74), Vector2(view_w - 112, 82), Vector2(view_w - 119, 74)]), Color("#5ad0ff"))
-    draw_string(font, Vector2(view_w - 98, 78), "%d/%d" % [gems_got, gems_total], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#f2e6bf"))
+    draw_string(font, Vector2(rx + 150, 44), "<", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, arrow_hot)
+    draw_string(font, Vector2(rx + 200, 44), ">", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, arrow_hot)
+    draw_string(font, Vector2(rx + 150, 90), "A/D+W", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, ember.color)
+    draw_string(font, Vector2(rx + 212, 90), "ARROWS", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, tide.color)
+    # gems counter pinned to the far right edge
+    draw_string(font, Vector2(view_w - 130, 42), "GEMS", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#9ab2b0"))
+    draw_colored_polygon(PackedVector2Array([Vector2(view_w - 122, 52), Vector2(view_w - 115, 60), Vector2(view_w - 122, 68), Vector2(view_w - 129, 60)]), Color("#ff6a5a"))
+    draw_colored_polygon(PackedVector2Array([Vector2(view_w - 92, 52), Vector2(view_w - 85, 60), Vector2(view_w - 92, 68), Vector2(view_w - 99, 60)]), Color("#5ad0ff"))
+    draw_string(font, Vector2(view_w - 78, 64), "%d/%d" % [gems_got, gems_total], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#f2e6bf"))
     if jump_buffer != "":
         draw_string(font, Vector2(view_w / 2 - 100, 200), "JUMP TO LEVEL %s" % jump_buffer, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#f8e3aa", 0.9))
